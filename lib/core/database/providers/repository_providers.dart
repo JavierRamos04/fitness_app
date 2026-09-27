@@ -77,7 +77,6 @@ final workoutRepositoryProvider = Provider<WorkoutRepository>((ref) {
   return WorkoutRepository(database);
 });
 
-
 final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
   return HistoryRepository(
     ref.read(databaseProvider),

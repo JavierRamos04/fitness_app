@@ -2,15 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/home/home_page.dart';
+import '../../features/onboarding/onboarding_page.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/progress/progress_page.dart';
+import '../../features/startup/startup_page.dart';
 import '../../features/training/training_page.dart';
 import '../../features/workouts/workouts_page.dart';
-import '../constants/app_constants.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppConstants.initialRoute,
+  initialLocation: '/startup',
   routes: [
+    GoRoute(
+      path: '/startup',
+      builder: (context, state) {
+        return const StartupPage();
+      },
+    ),
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) {
+        return const OnboardingPage();
+      },
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return Scaffold(

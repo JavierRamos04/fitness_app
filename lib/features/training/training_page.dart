@@ -5,6 +5,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
 import 'workout_session_controller.dart';
+import 'package:go_router/go_router.dart';
 
 class TrainingPage extends ConsumerStatefulWidget {
   const TrainingPage({super.key});
@@ -18,6 +19,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   final _repetitionsController = TextEditingController();
 
   bool _isPreparing = true;
+  bool _showNoActiveWorkout = false;
   String? _preparationError;
 
   int? _userId;
@@ -74,10 +76,16 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       );
 
       if (workout == null) {
-        throw StateError(
-          'No tienes una rutina activa. '
-              'Ve a Rutinas y establece una rutina como activa.',
-        );
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _showNoActiveWorkout = true;
+          _isPreparing = false;
+        });
+
+        return;
       }
 
       final plannedExercises =
@@ -422,6 +430,55 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
             child: Text(
               _preparationError!,
               textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_showNoActiveWorkout) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Entrenar'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.fitness_center_outlined,
+                  size: 72,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Aún no tienes una rutina activa',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Crea una rutina o activa una de tus rutinas '
+                      'para comenzar a entrenar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: () {
+                    context.go('/workouts');
+                  },
+                  icon: const Icon(Icons.fitness_center),
+                  label: const Text('Ir a Rutinas'),
+                ),
+              ],
             ),
           ),
         ),
