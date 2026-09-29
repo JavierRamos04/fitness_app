@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
@@ -39,6 +42,13 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   DateTime? _startedAt;
 
+  // Temporizador de descanso. Se guarda la hora de fin (y no un contador de
+  // ticks) para que el tiempo restante sea correcto aunque la app haya
+  // estado en segundo plano.
+  Timer? _restTimer;
+  DateTime? _restEndsAt;
+  int? _restRemainingSeconds;
+
   late final ValueNotifier<int> _activeTab;
 
   @override
@@ -53,10 +63,74 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   @override
   void dispose() {
+    _restTimer?.cancel();
     _activeTab.removeListener(_onActiveTabChanged);
     _weightController.dispose();
     _repetitionsController.dispose();
     super.dispose();
+  }
+
+  /// Limpia el estado del descanso sin llamar a `setState`.
+  /// Quien la use debe hacerlo dentro de un `setState` o antes de uno.
+  void _clearRest() {
+    _restTimer?.cancel();
+    _restTimer = null;
+    _restEndsAt = null;
+    _restRemainingSeconds = null;
+  }
+
+  void _startRest(int seconds) {
+    if (!mounted) {
+      return;
+    }
+
+    if (seconds <= 0) {
+      setState(_clearRest);
+      return;
+    }
+
+    setState(() {
+      _clearRest();
+      _restEndsAt = DateTime.now().add(Duration(seconds: seconds));
+      _restRemainingSeconds = seconds;
+    });
+
+    _restTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateRest(),
+    );
+  }
+
+  void _updateRest() {
+    final endsAt = _restEndsAt;
+
+    if (!mounted || endsAt == null) {
+      _restTimer?.cancel();
+      return;
+    }
+
+    final remainingMilliseconds =
+        endsAt.difference(DateTime.now()).inMilliseconds;
+
+    if (remainingMilliseconds <= 0) {
+      _finishRest();
+      return;
+    }
+
+    setState(() {
+      _restRemainingSeconds = (remainingMilliseconds / 1000).ceil();
+    });
+  }
+
+  void _finishRest() {
+    setState(_clearRest);
+
+    HapticFeedback.heavyImpact();
+    _showMessage('Descanso terminado.');
+  }
+
+  void _skipRest() {
+    setState(_clearRest);
   }
 
   void _onActiveTabChanged() {
@@ -192,6 +266,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     _startedAt = DateTime.now();
+    _clearRest();
     _currentPlannedIndex = 0;
     _nextSetIndex = 1;
     _hasRegisteredAnySet = false;
@@ -281,6 +356,10 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
     _weightController.clear();
     _repetitionsController.clear();
+
+    if (_plannedExercises.isNotEmpty) {
+      _startRest(_plannedExercises[_currentPlannedIndex].restSeconds);
+    }
   }
 
   Future<void> _goToNextExercise() async {
@@ -370,6 +449,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     setState(() {
+      _clearRest();
       _startedAt = null;
       _currentPlannedIndex = 0;
       _nextSetIndex = 1;
@@ -404,6 +484,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     setState(() {
+      _clearRest();
       _startedAt = null;
       _currentPlannedIndex = 0;
       _nextSetIndex = 1;
@@ -510,6 +591,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     final isTraining = state.isActive;
+    final restRemainingSeconds = _restRemainingSeconds;
 
     final currentExercise =
     _plannedExercises.isEmpty
@@ -607,6 +689,13 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                         '${currentExercise.minReps}-'
                         '${currentExercise.maxReps} repeticiones · '
                         '${currentExercise.restSeconds}s descanso',
+                  ),
+                ],
+                if (restRemainingSeconds != null) ...[
+                  const SizedBox(height: 20),
+                  _RestTimerCard(
+                    remainingSeconds: restRemainingSeconds,
+                    onSkip: _skipRest,
                   ),
                 ],
                 const SizedBox(height: 28),
@@ -717,6 +806,75 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta que muestra la cuenta atrás del descanso entre series.
+class _RestTimerCard extends StatelessWidget {
+  const _RestTimerCard({
+    required this.remainingSeconds,
+    required this.onSkip,
+  });
+
+  final int remainingSeconds;
+  final VoidCallback onSkip;
+
+  String get _formattedTime {
+    final minutes = remainingSeconds ~/ 60;
+    final seconds = remainingSeconds % 60;
+
+    return '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Card(
+      color: colors.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              color: colors.onSecondaryContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Descanso',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSecondaryContainer,
+                    ),
+                  ),
+                  Text(
+                    _formattedTime,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: colors.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onSkip,
+              child: const Text('Omitir'),
+            ),
+          ],
         ),
       ),
     );
