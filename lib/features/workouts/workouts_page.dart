@@ -1370,6 +1370,7 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<int>(
+              isExpanded: true,
               initialValue: _exerciseId,
               decoration: const InputDecoration(
                 labelText: 'Ejercicio',
