@@ -19,6 +19,10 @@ class TrainingPage extends ConsumerStatefulWidget {
 }
 
 class _TrainingPageState extends ConsumerState<TrainingPage> {
+  // Saltos de los botones rápidos [-] / [+].
+  static const double _weightStepKg = 2.5;
+  static const int _repetitionsStep = 1;
+
   final _weightController = TextEditingController();
   final _repetitionsController = TextEditingController();
 
@@ -131,6 +135,50 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   void _skipRest() {
     setState(_clearRest);
+  }
+
+  /// Suma o resta [delta] kg al valor escrito. Si el resultado es 0 o menos,
+  /// el campo se vacía, porque el peso es opcional (peso corporal).
+  void _adjustWeight(double delta) {
+    final text = _weightController.text.trim().replaceAll(',', '.');
+    final current = double.tryParse(text) ?? 0;
+    final next = current + delta;
+
+    if (next <= 0) {
+      _weightController.clear();
+      return;
+    }
+
+    _setFieldText(_weightController, _formatWeight(next));
+  }
+
+  /// Suma o resta [delta] repeticiones. Nunca baja de 1.
+  void _adjustRepetitions(int delta) {
+    final current =
+        int.tryParse(_repetitionsController.text.trim()) ?? 0;
+    final next = current + delta;
+
+    if (next < 1) {
+      return;
+    }
+
+    _setFieldText(_repetitionsController, next.toString());
+  }
+
+  void _setFieldText(TextEditingController controller, String text) {
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  /// 80.0 -> "80", 82.5 -> "82.5".
+  String _formatWeight(double value) {
+    final rounded = (value * 100).round() / 100;
+
+    return rounded == rounded.roundToDouble()
+        ? rounded.toStringAsFixed(0)
+        : rounded.toString();
   }
 
   void _onActiveTabChanged() {
@@ -707,27 +755,31 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _QuickAdjustField(
                   controller: _weightController,
+                  labelText: 'Peso (kg)',
+                  hintText: 'Ej. 80',
                   keyboardType:
                   const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'Peso (kg)',
-                    hintText: 'Ej. 80',
-                    border: OutlineInputBorder(),
-                  ),
+                  decrementTooltip: 'Restar $_weightStepKg kg',
+                  incrementTooltip: 'Sumar $_weightStepKg kg',
+                  onDecrement: () => _adjustWeight(-_weightStepKg),
+                  onIncrement: () => _adjustWeight(_weightStepKg),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _QuickAdjustField(
                   controller: _repetitionsController,
+                  labelText: 'Repeticiones',
+                  hintText: 'Ej. 10',
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Repeticiones',
-                    hintText: 'Ej. 10',
-                    border: OutlineInputBorder(),
-                  ),
+                  decrementTooltip: 'Restar $_repetitionsStep repetición',
+                  incrementTooltip: 'Sumar $_repetitionsStep repetición',
+                  onDecrement: () =>
+                      _adjustRepetitions(-_repetitionsStep),
+                  onIncrement: () =>
+                      _adjustRepetitions(_repetitionsStep),
                 ),
                 const SizedBox(height: 12),
                 FilledButton(
@@ -877,6 +929,62 @@ class _RestTimerCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// Campo numérico con botones [-] y [+] a los lados para ajustar el valor
+/// sin abrir el teclado.
+class _QuickAdjustField extends StatelessWidget {
+  const _QuickAdjustField({
+    required this.controller,
+    required this.labelText,
+    required this.hintText,
+    required this.keyboardType,
+    required this.decrementTooltip,
+    required this.incrementTooltip,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final TextEditingController controller;
+  final String labelText;
+  final String hintText;
+  final TextInputType keyboardType;
+  final String decrementTooltip;
+  final String incrementTooltip;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton.filledTonal(
+          onPressed: onDecrement,
+          tooltip: decrementTooltip,
+          icon: const Icon(Icons.remove),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              labelText: labelText,
+              hintText: hintText,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          onPressed: onIncrement,
+          tooltip: incrementTooltip,
+          icon: const Icon(Icons.add),
+        ),
+      ],
     );
   }
 }
