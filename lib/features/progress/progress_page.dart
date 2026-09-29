@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/router/active_tab_provider.dart';
 
 class ProgressPage extends ConsumerStatefulWidget {
   const ProgressPage({super.key});
@@ -20,10 +21,28 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
   List<TrainingHistoryItem> _history = [];
   List<WeightEntry> _weightHistory = [];
 
+  late final ValueNotifier<int> _activeTab;
+
   @override
   void initState() {
     super.initState();
+
+    _activeTab = ref.read(activeTabProvider);
+    _activeTab.addListener(_onActiveTabChanged);
+
     _loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _activeTab.removeListener(_onActiveTabChanged);
+    super.dispose();
+  }
+
+  void _onActiveTabChanged() {
+    if (_activeTab.value == MainTab.progress) {
+      _loadHistory();
+    }
   }
 
   Future<void> _loadHistory() async {

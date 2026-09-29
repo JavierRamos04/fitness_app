@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/router/active_tab_provider.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,17 +39,38 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   DateTime? _startedAt;
 
+  late final ValueNotifier<int> _activeTab;
+
   @override
   void initState() {
     super.initState();
+
+    _activeTab = ref.read(activeTabProvider);
+    _activeTab.addListener(_onActiveTabChanged);
+
     _loadTrainingData();
   }
 
   @override
   void dispose() {
+    _activeTab.removeListener(_onActiveTabChanged);
     _weightController.dispose();
     _repetitionsController.dispose();
     super.dispose();
+  }
+
+  void _onActiveTabChanged() {
+    if (_activeTab.value != MainTab.training) {
+      return;
+    }
+
+    // Si hay un entrenamiento en curso no se recarga nada: se perdería el
+    // ejercicio actual y las series que se ven en pantalla.
+    if (ref.read(workoutSessionControllerProvider).isActive) {
+      return;
+    }
+
+    _loadTrainingData();
   }
 
   Future<void> _loadTrainingData() async {
@@ -82,6 +104,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
         setState(() {
           _showNoActiveWorkout = true;
+          _preparationError = null;
           _isPreparing = false;
         });
 
@@ -120,6 +143,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         _plannedExercises = plannedExercises;
         _currentPlannedIndex = 0;
         _isPreparing = false;
+        _showNoActiveWorkout = false;
         _preparationError = null;
         _hasRegisteredAnySet = false;
       });

@@ -8,6 +8,7 @@ import '../../features/progress/progress_page.dart';
 import '../../features/startup/startup_page.dart';
 import '../../features/training/training_page.dart';
 import '../../features/workouts/workouts_page.dart';
+import 'active_tab_reporter.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/startup',
@@ -27,7 +28,10 @@ final GoRouter appRouter = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return Scaffold(
-          body: navigationShell,
+          body: ActiveTabReporter(
+            navigationShell: navigationShell,
+            child: navigationShell,
+          ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: navigationShell.goBranch,

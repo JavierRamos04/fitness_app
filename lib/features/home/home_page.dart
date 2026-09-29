@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/router/active_tab_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -23,10 +24,28 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _sessionCount = 0;
   int _streak = 0;
 
+  late final ValueNotifier<int> _activeTab;
+
   @override
   void initState() {
     super.initState();
+
+    _activeTab = ref.read(activeTabProvider);
+    _activeTab.addListener(_onActiveTabChanged);
+
     _loadHomeData();
+  }
+
+  @override
+  void dispose() {
+    _activeTab.removeListener(_onActiveTabChanged);
+    super.dispose();
+  }
+
+  void _onActiveTabChanged() {
+    if (_activeTab.value == MainTab.home) {
+      _loadHomeData();
+    }
   }
 
   Future<void> _loadHomeData() async {
