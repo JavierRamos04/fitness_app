@@ -8,10 +8,15 @@ class WeightEntryRepository {
   final AppDatabase _database;
 
   Future<List<WeightEntry>> getAll() {
+    return (_database.select(
+      _database.weightEntries,
+    )..orderBy([(table) => OrderingTerm.desc(table.recordedAt)])).get();
+  }
+
+  Future<List<WeightEntry>> getAllForUser(int userId) {
     return (_database.select(_database.weightEntries)
-      ..orderBy([
-            (table) => OrderingTerm.desc(table.recordedAt),
-      ]))
+          ..where((table) => table.userId.equals(userId))
+          ..orderBy([(table) => OrderingTerm.desc(table.recordedAt)]))
         .get();
   }
 
@@ -20,12 +25,14 @@ class WeightEntryRepository {
     required DateTime recordedAt,
     required double weightKg,
   }) async {
-    await _database.into(_database.weightEntries).insert(
-      WeightEntriesCompanion.insert(
-        userId: userId,
-        recordedAt: recordedAt,
-        weightKg: weightKg,
-      ),
-    );
+    await _database
+        .into(_database.weightEntries)
+        .insert(
+          WeightEntriesCompanion.insert(
+            userId: userId,
+            recordedAt: recordedAt,
+            weightKg: weightKg,
+          ),
+        );
   }
 }
