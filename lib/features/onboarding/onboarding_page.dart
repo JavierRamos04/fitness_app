@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/utils/decimal_parser.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -100,7 +101,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       return false;
     }
 
-    final height = double.tryParse(_heightController.text.trim());
+    final height = parseDecimal(_heightController.text);
 
     if (height == null || height < 100 || height > 250) {
       _showMessage('Introduce una estatura válida entre 100 y 250 cm.');
@@ -108,7 +109,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       return false;
     }
 
-    final weight = double.tryParse(_weightController.text.trim());
+    final weight = parseDecimal(_weightController.text);
 
     if (weight == null || weight < 20 || weight > 300) {
       _showMessage('Introduce un peso válido entre 20 y 300 kg.');
@@ -129,9 +130,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     });
 
     try {
-      final height = double.parse(_heightController.text.trim());
+      // Ya validados en _validatePersonalData(), por eso no pueden ser null.
+      final height = parseDecimal(_heightController.text)!;
 
-      final weight = double.parse(_weightController.text.trim());
+      final weight = parseDecimal(_weightController.text)!;
 
       final database = ref.read(databaseProvider);
 
