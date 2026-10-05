@@ -137,11 +137,16 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     setState(_clearRest);
   }
 
+  /// Convierte texto a número aceptando coma o punto como separador decimal
+  /// (el teclado numérico en español puede insertar coma).
+  double? _parseDecimal(String text) {
+    return double.tryParse(text.trim().replaceAll(',', '.'));
+  }
+
   /// Suma o resta [delta] kg al valor escrito. Si el resultado es 0 o menos,
   /// el campo se vacía, porque el peso es opcional (peso corporal).
   void _adjustWeight(double delta) {
-    final text = _weightController.text.trim().replaceAll(',', '.');
-    final current = double.tryParse(text) ?? 0;
+    final current = _parseDecimal(_weightController.text) ?? 0;
     final next = current + delta;
 
     if (next <= 0) {
@@ -366,7 +371,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     final weightKg =
-    weightText.isEmpty ? null : double.tryParse(weightText);
+    weightText.isEmpty ? null : _parseDecimal(weightText);
 
     if (weightText.isNotEmpty &&
         (weightKg == null || weightKg < 0)) {
