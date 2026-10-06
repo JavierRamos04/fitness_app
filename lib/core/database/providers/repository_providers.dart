@@ -4,7 +4,9 @@ import '../database_provider.dart';
 import '../goal_repository.dart';
 import '../user_repository.dart';
 import '../weight_entry_repository.dart';
+import '../equipment_repository.dart';
 import '../exercise_equipment_repository.dart';
+import '../exercise_repository.dart';
 import '../exercise_relationship_repository.dart';
 import '../workout_exercise_repository.dart';
 import '../session_exercise_repository.dart';
@@ -81,4 +83,16 @@ final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
   return HistoryRepository(
     ref.read(databaseProvider),
   );
+});
+
+final equipmentRepositoryProvider = Provider<EquipmentRepository>((ref) {
+  final database = ref.watch(databaseProvider);
+
+  return EquipmentRepository(database);
+});
+
+final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
+  final database = ref.watch(databaseProvider);
+
+  return ExerciseRepository(database);
 });
