@@ -13,3 +13,14 @@ List<EquipmentCompanion> get initialEquipment {
     EquipmentCompanion.insert(code: 'gym_machine', name: 'Máquina de gimnasio'),
   ];
 }
+
+/// Equipo que se ofrece al elegir qué se tiene en casa, en el orden en que se
+/// muestra. Polea y máquinas de gimnasio no se ofrecen: se asume que solo
+/// están en el gimnasio. Los códigos deben existir en [initialEquipment].
+const List<String> homeEquipmentCodes = [
+  'dumbbells',
+  'resistance_band',
+  'bench',
+  'pull_up_bar',
+  'barbell',
+];

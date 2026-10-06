@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/widgets/equipment_selector.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -19,6 +20,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   User? _user;
   Goal? _activeGoal;
+
+  List<EquipmentData> _homeEquipmentOptions = [];
+  Set<String> _homeEquipment = {};
+  Set<String> _editingHomeEquipment = {};
 
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
@@ -60,12 +65,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           .where((goal) => goal.userId == user.id && goal.status == 'active')
           .toList();
 
+      final homeEquipmentOptions = await ref
+          .read(equipmentRepositoryProvider)
+          .getHomeOptions();
+
+      final homeEquipment = await ref
+          .read(userEquipmentRepositoryProvider)
+          .getCodes(user.id);
+
       if (!mounted) {
         return;
       }
 
       setState(() {
         _user = user;
+        _homeEquipmentOptions = homeEquipmentOptions;
+        _homeEquipment = homeEquipment;
         _activeGoal = userGoals.isEmpty ? null : userGoals.first;
         _isLoading = false;
         _errorMessage = null;
@@ -105,6 +120,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       _editingWeeklyFrequency = user.weeklyFrequency;
       _editingAvailableMinutes = user.availableMinutes;
       _editingGoalType = activeGoal?.type ?? 'general_fitness';
+      _editingHomeEquipment = {..._homeEquipment};
     });
   }
 
@@ -194,6 +210,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       );
 
       await userRepository.updateUser(updatedUser);
+
+      // Con gimnasio se asume que hay de todo: se conserva lo que había
+      // guardado por si el usuario vuelve a entrenar en casa.
+      if (_editingTrainingLocation != 'gym') {
+        await ref
+            .read(userEquipmentRepositoryProvider)
+            .replaceAll(user.id, _editingHomeEquipment);
+      }
 
       final activeGoal = _activeGoal;
 
@@ -378,6 +402,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return _buildProfile(user);
   }
 
+  String _homeEquipmentSummary() {
+    final names = _homeEquipmentOptions
+        .where((item) => _homeEquipment.contains(item.code))
+        .map((item) => item.name)
+        .toList();
+
+    return names.isEmpty ? 'Sin equipo (peso corporal)' : names.join(', ');
+  }
+
   Widget _buildProfile(User user) {
     final activeGoal = _activeGoal;
 
@@ -467,6 +500,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   value: _trainingLocationLabel(user.trainingLocation),
                 ),
                 const Divider(height: 24),
+                if (user.trainingLocation != 'gym') ...[
+                  _ProfileInfoRow(
+                    icon: Icons.fitness_center,
+                    label: 'Equipo en casa',
+                    value: _homeEquipmentSummary(),
+                  ),
+                  const Divider(height: 24),
+                ],
                 _ProfileInfoRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'Frecuencia',
@@ -651,6 +692,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           });
                         },
                 ),
+                if (_editingTrainingLocation != 'gym' &&
+                    _homeEquipmentOptions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Equipo en casa',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  EquipmentSelector(
+                    options: _homeEquipmentOptions,
+                    selectedCodes: _editingHomeEquipment,
+                    enabled: !_isSaving,
+                    onChanged: (codes) {
+                      setState(() {
+                        _editingHomeEquipment = codes;
+                      });
+                    },
+                  ),
+                ],
                 const SizedBox(height: 14),
                 DropdownButtonFormField<int>(
                   initialValue: _editingWeeklyFrequency,

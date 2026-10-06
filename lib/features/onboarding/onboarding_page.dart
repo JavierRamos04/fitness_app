@@ -6,6 +6,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/utils/decimal_parser.dart';
+import '../../core/widgets/equipment_selector.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -32,12 +33,40 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   bool _isSaving = false;
 
+  List<EquipmentData> _homeEquipmentOptions = [];
+  Set<String> _homeEquipment = {};
+
   final List<Map<String, String>> _goals = const [
     {'type': 'strength', 'name': 'Ganar fuerza'},
     {'type': 'hypertrophy', 'name': 'Ganar masa muscular'},
     {'type': 'fat_loss', 'name': 'Perder grasa'},
     {'type': 'general_fitness', 'name': 'Mejorar condición física'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeEquipmentOptions();
+  }
+
+  Future<void> _loadHomeEquipmentOptions() async {
+    try {
+      final options = await ref
+          .read(equipmentRepositoryProvider)
+          .getHomeOptions();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _homeEquipmentOptions = options;
+      });
+    } catch (_) {
+      // Si no se pueden cargar, el resto del onboarding sigue funcionando
+      // y simplemente no se ofrece elegir el equipo.
+    }
+  }
 
   @override
   void dispose() {
@@ -141,6 +170,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
       final goalRepository = ref.read(goalRepositoryProvider);
 
+      final userEquipmentRepository = ref.read(
+        userEquipmentRepositoryProvider,
+      );
+
       final existingUser = await userRepository.getUser();
 
       if (existingUser != null) {
@@ -177,6 +210,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           targetDate: null,
           status: 'active',
         );
+
+        // Con gimnasio se asume que hay de todo, así que no se guarda nada.
+        if (_trainingLocation != 'gym') {
+          await userEquipmentRepository.replaceAll(userId, _homeEquipment);
+        }
       });
 
       if (!mounted) {
@@ -402,6 +440,33 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             });
           },
         ),
+        if (_trainingLocation != 'gym' &&
+            _homeEquipmentOptions.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const Text(
+            '¿Qué equipo tienes en casa?',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Si no tienes ninguno, déjalo vacío: usaremos ejercicios con tu peso corporal.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          EquipmentSelector(
+            options: _homeEquipmentOptions,
+            selectedCodes: _homeEquipment,
+            enabled: !_isSaving,
+            onChanged: (codes) {
+              setState(() {
+                _homeEquipment = codes;
+              });
+            },
+          ),
+        ],
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
           initialValue: _weeklyFrequency,
