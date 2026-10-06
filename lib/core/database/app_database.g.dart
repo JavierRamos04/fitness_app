@@ -529,6 +529,569 @@ class UsersCompanion extends UpdateCompanion<User> {
   }
 }
 
+class $EquipmentTable extends Equipment
+    with TableInfo<$EquipmentTable, EquipmentData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EquipmentTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, code, name, isActive];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'equipment';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EquipmentData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EquipmentData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EquipmentData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+    );
+  }
+
+  @override
+  $EquipmentTable createAlias(String alias) {
+    return $EquipmentTable(attachedDatabase, alias);
+  }
+}
+
+class EquipmentData extends DataClass implements Insertable<EquipmentData> {
+  final int id;
+  final String code;
+  final String name;
+  final bool isActive;
+  const EquipmentData({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.isActive,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
+    map['name'] = Variable<String>(name);
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  EquipmentCompanion toCompanion(bool nullToAbsent) {
+    return EquipmentCompanion(
+      id: Value(id),
+      code: Value(code),
+      name: Value(name),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory EquipmentData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EquipmentData(
+      id: serializer.fromJson<int>(json['id']),
+      code: serializer.fromJson<String>(json['code']),
+      name: serializer.fromJson<String>(json['name']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
+      'name': serializer.toJson<String>(name),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  EquipmentData copyWith({
+    int? id,
+    String? code,
+    String? name,
+    bool? isActive,
+  }) => EquipmentData(
+    id: id ?? this.id,
+    code: code ?? this.code,
+    name: name ?? this.name,
+    isActive: isActive ?? this.isActive,
+  );
+  EquipmentData copyWithCompanion(EquipmentCompanion data) {
+    return EquipmentData(
+      id: data.id.present ? data.id.value : this.id,
+      code: data.code.present ? data.code.value : this.code,
+      name: data.name.present ? data.name.value : this.name,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EquipmentData(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, code, name, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EquipmentData &&
+          other.id == this.id &&
+          other.code == this.code &&
+          other.name == this.name &&
+          other.isActive == this.isActive);
+}
+
+class EquipmentCompanion extends UpdateCompanion<EquipmentData> {
+  final Value<int> id;
+  final Value<String> code;
+  final Value<String> name;
+  final Value<bool> isActive;
+  const EquipmentCompanion({
+    this.id = const Value.absent(),
+    this.code = const Value.absent(),
+    this.name = const Value.absent(),
+    this.isActive = const Value.absent(),
+  });
+  EquipmentCompanion.insert({
+    this.id = const Value.absent(),
+    required String code,
+    required String name,
+    this.isActive = const Value.absent(),
+  }) : code = Value(code),
+       name = Value(name);
+  static Insertable<EquipmentData> custom({
+    Expression<int>? id,
+    Expression<String>? code,
+    Expression<String>? name,
+    Expression<bool>? isActive,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (code != null) 'code': code,
+      if (name != null) 'name': name,
+      if (isActive != null) 'is_active': isActive,
+    });
+  }
+
+  EquipmentCompanion copyWith({
+    Value<int>? id,
+    Value<String>? code,
+    Value<String>? name,
+    Value<bool>? isActive,
+  }) {
+    return EquipmentCompanion(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      name: name ?? this.name,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EquipmentCompanion(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $UserEquipmentTable extends UserEquipment
+    with TableInfo<$UserEquipmentTable, UserEquipmentData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserEquipmentTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _equipmentIdMeta = const VerificationMeta(
+    'equipmentId',
+  );
+  @override
+  late final GeneratedColumn<int> equipmentId = GeneratedColumn<int>(
+    'equipment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES equipment (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, userId, equipmentId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_equipment';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserEquipmentData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('equipment_id')) {
+      context.handle(
+        _equipmentIdMeta,
+        equipmentId.isAcceptableOrUnknown(
+          data['equipment_id']!,
+          _equipmentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_equipmentIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {userId, equipmentId},
+  ];
+  @override
+  UserEquipmentData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserEquipmentData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}user_id'],
+      )!,
+      equipmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}equipment_id'],
+      )!,
+    );
+  }
+
+  @override
+  $UserEquipmentTable createAlias(String alias) {
+    return $UserEquipmentTable(attachedDatabase, alias);
+  }
+}
+
+class UserEquipmentData extends DataClass
+    implements Insertable<UserEquipmentData> {
+  final int id;
+  final int userId;
+  final int equipmentId;
+  const UserEquipmentData({
+    required this.id,
+    required this.userId,
+    required this.equipmentId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<int>(userId);
+    map['equipment_id'] = Variable<int>(equipmentId);
+    return map;
+  }
+
+  UserEquipmentCompanion toCompanion(bool nullToAbsent) {
+    return UserEquipmentCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      equipmentId: Value(equipmentId),
+    );
+  }
+
+  factory UserEquipmentData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserEquipmentData(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<int>(json['userId']),
+      equipmentId: serializer.fromJson<int>(json['equipmentId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<int>(userId),
+      'equipmentId': serializer.toJson<int>(equipmentId),
+    };
+  }
+
+  UserEquipmentData copyWith({int? id, int? userId, int? equipmentId}) =>
+      UserEquipmentData(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        equipmentId: equipmentId ?? this.equipmentId,
+      );
+  UserEquipmentData copyWithCompanion(UserEquipmentCompanion data) {
+    return UserEquipmentData(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      equipmentId: data.equipmentId.present
+          ? data.equipmentId.value
+          : this.equipmentId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserEquipmentData(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('equipmentId: $equipmentId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, userId, equipmentId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserEquipmentData &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.equipmentId == this.equipmentId);
+}
+
+class UserEquipmentCompanion extends UpdateCompanion<UserEquipmentData> {
+  final Value<int> id;
+  final Value<int> userId;
+  final Value<int> equipmentId;
+  const UserEquipmentCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.equipmentId = const Value.absent(),
+  });
+  UserEquipmentCompanion.insert({
+    this.id = const Value.absent(),
+    required int userId,
+    required int equipmentId,
+  }) : userId = Value(userId),
+       equipmentId = Value(equipmentId);
+  static Insertable<UserEquipmentData> custom({
+    Expression<int>? id,
+    Expression<int>? userId,
+    Expression<int>? equipmentId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (equipmentId != null) 'equipment_id': equipmentId,
+    });
+  }
+
+  UserEquipmentCompanion copyWith({
+    Value<int>? id,
+    Value<int>? userId,
+    Value<int>? equipmentId,
+  }) {
+    return UserEquipmentCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      equipmentId: equipmentId ?? this.equipmentId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
+    }
+    if (equipmentId.present) {
+      map['equipment_id'] = Variable<int>(equipmentId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserEquipmentCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('equipmentId: $equipmentId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WeightEntriesTable extends WeightEntries
     with TableInfo<$WeightEntriesTable, WeightEntry> {
   @override
@@ -1371,304 +1934,6 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('startDate: $startDate, ')
           ..write('targetDate: $targetDate, ')
           ..write('status: $status')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $EquipmentTable extends Equipment
-    with TableInfo<$EquipmentTable, EquipmentData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $EquipmentTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _codeMeta = const VerificationMeta('code');
-  @override
-  late final GeneratedColumn<String> code = GeneratedColumn<String>(
-    'code',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _isActiveMeta = const VerificationMeta(
-    'isActive',
-  );
-  @override
-  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
-    'is_active',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_active" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, code, name, isActive];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'equipment';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<EquipmentData> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('code')) {
-      context.handle(
-        _codeMeta,
-        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_codeMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('is_active')) {
-      context.handle(
-        _isActiveMeta,
-        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  EquipmentData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return EquipmentData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      code: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}code'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      isActive: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_active'],
-      )!,
-    );
-  }
-
-  @override
-  $EquipmentTable createAlias(String alias) {
-    return $EquipmentTable(attachedDatabase, alias);
-  }
-}
-
-class EquipmentData extends DataClass implements Insertable<EquipmentData> {
-  final int id;
-  final String code;
-  final String name;
-  final bool isActive;
-  const EquipmentData({
-    required this.id,
-    required this.code,
-    required this.name,
-    required this.isActive,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['code'] = Variable<String>(code);
-    map['name'] = Variable<String>(name);
-    map['is_active'] = Variable<bool>(isActive);
-    return map;
-  }
-
-  EquipmentCompanion toCompanion(bool nullToAbsent) {
-    return EquipmentCompanion(
-      id: Value(id),
-      code: Value(code),
-      name: Value(name),
-      isActive: Value(isActive),
-    );
-  }
-
-  factory EquipmentData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return EquipmentData(
-      id: serializer.fromJson<int>(json['id']),
-      code: serializer.fromJson<String>(json['code']),
-      name: serializer.fromJson<String>(json['name']),
-      isActive: serializer.fromJson<bool>(json['isActive']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'code': serializer.toJson<String>(code),
-      'name': serializer.toJson<String>(name),
-      'isActive': serializer.toJson<bool>(isActive),
-    };
-  }
-
-  EquipmentData copyWith({
-    int? id,
-    String? code,
-    String? name,
-    bool? isActive,
-  }) => EquipmentData(
-    id: id ?? this.id,
-    code: code ?? this.code,
-    name: name ?? this.name,
-    isActive: isActive ?? this.isActive,
-  );
-  EquipmentData copyWithCompanion(EquipmentCompanion data) {
-    return EquipmentData(
-      id: data.id.present ? data.id.value : this.id,
-      code: data.code.present ? data.code.value : this.code,
-      name: data.name.present ? data.name.value : this.name,
-      isActive: data.isActive.present ? data.isActive.value : this.isActive,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('EquipmentData(')
-          ..write('id: $id, ')
-          ..write('code: $code, ')
-          ..write('name: $name, ')
-          ..write('isActive: $isActive')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, code, name, isActive);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is EquipmentData &&
-          other.id == this.id &&
-          other.code == this.code &&
-          other.name == this.name &&
-          other.isActive == this.isActive);
-}
-
-class EquipmentCompanion extends UpdateCompanion<EquipmentData> {
-  final Value<int> id;
-  final Value<String> code;
-  final Value<String> name;
-  final Value<bool> isActive;
-  const EquipmentCompanion({
-    this.id = const Value.absent(),
-    this.code = const Value.absent(),
-    this.name = const Value.absent(),
-    this.isActive = const Value.absent(),
-  });
-  EquipmentCompanion.insert({
-    this.id = const Value.absent(),
-    required String code,
-    required String name,
-    this.isActive = const Value.absent(),
-  }) : code = Value(code),
-       name = Value(name);
-  static Insertable<EquipmentData> custom({
-    Expression<int>? id,
-    Expression<String>? code,
-    Expression<String>? name,
-    Expression<bool>? isActive,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (code != null) 'code': code,
-      if (name != null) 'name': name,
-      if (isActive != null) 'is_active': isActive,
-    });
-  }
-
-  EquipmentCompanion copyWith({
-    Value<int>? id,
-    Value<String>? code,
-    Value<String>? name,
-    Value<bool>? isActive,
-  }) {
-    return EquipmentCompanion(
-      id: id ?? this.id,
-      code: code ?? this.code,
-      name: name ?? this.name,
-      isActive: isActive ?? this.isActive,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (code.present) {
-      map['code'] = Variable<String>(code.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (isActive.present) {
-      map['is_active'] = Variable<bool>(isActive.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('EquipmentCompanion(')
-          ..write('id: $id, ')
-          ..write('code: $code, ')
-          ..write('name: $name, ')
-          ..write('isActive: $isActive')
           ..write(')'))
         .toString();
   }
@@ -5354,9 +5619,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $UsersTable users = $UsersTable(this);
+  late final $EquipmentTable equipment = $EquipmentTable(this);
+  late final $UserEquipmentTable userEquipment = $UserEquipmentTable(this);
   late final $WeightEntriesTable weightEntries = $WeightEntriesTable(this);
   late final $GoalsTable goals = $GoalsTable(this);
-  late final $EquipmentTable equipment = $EquipmentTable(this);
   late final $ExercisesTable exercises = $ExercisesTable(this);
   late final $ExerciseEquipmentTable exerciseEquipment =
       $ExerciseEquipmentTable(this);
@@ -5377,9 +5643,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     users,
+    equipment,
+    userEquipment,
     weightEntries,
     goals,
-    equipment,
     exercises,
     exerciseEquipment,
     exerciseRelationships,
@@ -5391,6 +5658,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'users',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('user_equipment', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'equipment',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('user_equipment', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'exercises',
@@ -5489,6 +5770,24 @@ final class $$UsersTableReferences
     extends BaseReferences<_$AppDatabase, $UsersTable, User> {
   $$UsersTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
+  static MultiTypedResultKey<$UserEquipmentTable, List<UserEquipmentData>>
+  _userEquipmentRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.userEquipment,
+    aliasName: 'users__id__user_equipment__user_id',
+  );
+
+  $$UserEquipmentTableProcessedTableManager get userEquipmentRefs {
+    final manager = $$UserEquipmentTableTableManager(
+      $_db,
+      $_db.userEquipment,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_userEquipmentRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$WorkoutsTable, List<Workout>> _workoutsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
@@ -5575,6 +5874,31 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
     column: $table.availableMinutes,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> userEquipmentRefs(
+    Expression<bool> Function($$UserEquipmentTableFilterComposer f) f,
+  ) {
+    final $$UserEquipmentTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userEquipment,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserEquipmentTableFilterComposer(
+            $db: $db,
+            $table: $db.userEquipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> workoutsRefs(
     Expression<bool> Function($$WorkoutsTableFilterComposer f) f,
@@ -5720,6 +6044,31 @@ class $$UsersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  Expression<T> userEquipmentRefs<T extends Object>(
+    Expression<T> Function($$UserEquipmentTableAnnotationComposer a) f,
+  ) {
+    final $$UserEquipmentTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userEquipment,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserEquipmentTableAnnotationComposer(
+            $db: $db,
+            $table: $db.userEquipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> workoutsRefs<T extends Object>(
     Expression<T> Function($$WorkoutsTableAnnotationComposer a) f,
   ) {
@@ -5784,7 +6133,11 @@ class $$UsersTableTableManager
           $$UsersTableUpdateCompanionBuilder,
           (User, $$UsersTableReferences),
           User,
-          PrefetchHooks Function({bool workoutsRefs, bool sessionsRefs})
+          PrefetchHooks Function({
+            bool userEquipmentRefs,
+            bool workoutsRefs,
+            bool sessionsRefs,
+          })
         > {
   $$UsersTableTableManager(_$AppDatabase db, $UsersTable table)
     : super(
@@ -5846,16 +6199,42 @@ class $$UsersTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({workoutsRefs = false, sessionsRefs = false}) {
+              ({
+                userEquipmentRefs = false,
+                workoutsRefs = false,
+                sessionsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (userEquipmentRefs) db.userEquipment,
                     if (workoutsRefs) db.workouts,
                     if (sessionsRefs) db.sessions,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (userEquipmentRefs)
+                        await $_getPrefetchedData<
+                          User,
+                          $UsersTable,
+                          UserEquipmentData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._userEquipmentRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).userEquipmentRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (workoutsRefs)
                         await $_getPrefetchedData<User, $UsersTable, Workout>(
                           currentTable: table,
@@ -5910,7 +6289,753 @@ typedef $$UsersTableProcessedTableManager =
       $$UsersTableUpdateCompanionBuilder,
       (User, $$UsersTableReferences),
       User,
-      PrefetchHooks Function({bool workoutsRefs, bool sessionsRefs})
+      PrefetchHooks Function({
+        bool userEquipmentRefs,
+        bool workoutsRefs,
+        bool sessionsRefs,
+      })
+    >;
+typedef $$EquipmentTableCreateCompanionBuilder = EquipmentCompanion Function({
+  Value<int> id,
+  required String code,
+  required String name,
+  Value<bool> isActive,
+});
+typedef $$EquipmentTableUpdateCompanionBuilder = EquipmentCompanion Function({
+  Value<int> id,
+  Value<String> code,
+  Value<String> name,
+  Value<bool> isActive,
+});
+
+final class $$EquipmentTableReferences
+    extends BaseReferences<_$AppDatabase, $EquipmentTable, EquipmentData> {
+  $$EquipmentTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$UserEquipmentTable, List<UserEquipmentData>>
+  _userEquipmentRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.userEquipment,
+    aliasName: 'equipment__id__user_equipment__equipment_id',
+  );
+
+  $$UserEquipmentTableProcessedTableManager get userEquipmentRefs {
+    final manager = $$UserEquipmentTableTableManager(
+      $_db,
+      $_db.userEquipment,
+    ).filter((f) => f.equipmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_userEquipmentRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ExerciseEquipmentTable,
+    List<ExerciseEquipmentData>
+  >
+  _exerciseEquipmentRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.exerciseEquipment,
+        aliasName: 'equipment__id__exercise_equipment__equipment_id',
+      );
+
+  $$ExerciseEquipmentTableProcessedTableManager get exerciseEquipmentRefs {
+    final manager = $$ExerciseEquipmentTableTableManager(
+      $_db,
+      $_db.exerciseEquipment,
+    ).filter((f) => f.equipmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _exerciseEquipmentRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$EquipmentTableFilterComposer
+    extends Composer<_$AppDatabase, $EquipmentTable> {
+  $$EquipmentTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> userEquipmentRefs(
+    Expression<bool> Function($$UserEquipmentTableFilterComposer f) f,
+  ) {
+    final $$UserEquipmentTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userEquipment,
+      getReferencedColumn: (t) => t.equipmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserEquipmentTableFilterComposer(
+            $db: $db,
+            $table: $db.userEquipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> exerciseEquipmentRefs(
+    Expression<bool> Function($$ExerciseEquipmentTableFilterComposer f) f,
+  ) {
+    final $$ExerciseEquipmentTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.exerciseEquipment,
+      getReferencedColumn: (t) => t.equipmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExerciseEquipmentTableFilterComposer(
+            $db: $db,
+            $table: $db.exerciseEquipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$EquipmentTableOrderingComposer
+    extends Composer<_$AppDatabase, $EquipmentTable> {
+  $$EquipmentTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EquipmentTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EquipmentTable> {
+  $$EquipmentTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  Expression<T> userEquipmentRefs<T extends Object>(
+    Expression<T> Function($$UserEquipmentTableAnnotationComposer a) f,
+  ) {
+    final $$UserEquipmentTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userEquipment,
+      getReferencedColumn: (t) => t.equipmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserEquipmentTableAnnotationComposer(
+            $db: $db,
+            $table: $db.userEquipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> exerciseEquipmentRefs<T extends Object>(
+    Expression<T> Function($$ExerciseEquipmentTableAnnotationComposer a) f,
+  ) {
+    final $$ExerciseEquipmentTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.exerciseEquipment,
+          getReferencedColumn: (t) => t.equipmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ExerciseEquipmentTableAnnotationComposer(
+                $db: $db,
+                $table: $db.exerciseEquipment,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$EquipmentTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EquipmentTable,
+          EquipmentData,
+          $$EquipmentTableFilterComposer,
+          $$EquipmentTableOrderingComposer,
+          $$EquipmentTableAnnotationComposer,
+          $$EquipmentTableCreateCompanionBuilder,
+          $$EquipmentTableUpdateCompanionBuilder,
+          (EquipmentData, $$EquipmentTableReferences),
+          EquipmentData,
+          PrefetchHooks Function({
+            bool userEquipmentRefs,
+            bool exerciseEquipmentRefs,
+          })
+        > {
+  $$EquipmentTableTableManager(_$AppDatabase db, $EquipmentTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EquipmentTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EquipmentTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EquipmentTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> code = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+              }) => EquipmentCompanion(
+                id: id,
+                code: code,
+                name: name,
+                isActive: isActive,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String code,
+                required String name,
+                Value<bool> isActive = const Value.absent(),
+              }) => EquipmentCompanion.insert(
+                id: id,
+                code: code,
+                name: name,
+                isActive: isActive,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$EquipmentTable, EquipmentData>(table),
+                  $$EquipmentTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({userEquipmentRefs = false, exerciseEquipmentRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (userEquipmentRefs) db.userEquipment,
+                    if (exerciseEquipmentRefs) db.exerciseEquipment,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (userEquipmentRefs)
+                        await $_getPrefetchedData<
+                          EquipmentData,
+                          $EquipmentTable,
+                          UserEquipmentData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$EquipmentTableReferences
+                              ._userEquipmentRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EquipmentTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).userEquipmentRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.equipmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (exerciseEquipmentRefs)
+                        await $_getPrefetchedData<
+                          EquipmentData,
+                          $EquipmentTable,
+                          ExerciseEquipmentData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$EquipmentTableReferences
+                              ._exerciseEquipmentRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EquipmentTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).exerciseEquipmentRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.equipmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$EquipmentTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EquipmentTable,
+      EquipmentData,
+      $$EquipmentTableFilterComposer,
+      $$EquipmentTableOrderingComposer,
+      $$EquipmentTableAnnotationComposer,
+      $$EquipmentTableCreateCompanionBuilder,
+      $$EquipmentTableUpdateCompanionBuilder,
+      (EquipmentData, $$EquipmentTableReferences),
+      EquipmentData,
+      PrefetchHooks Function({
+        bool userEquipmentRefs,
+        bool exerciseEquipmentRefs,
+      })
+    >;
+typedef $$UserEquipmentTableCreateCompanionBuilder =
+    UserEquipmentCompanion Function({
+      Value<int> id,
+      required int userId,
+      required int equipmentId,
+    });
+typedef $$UserEquipmentTableUpdateCompanionBuilder =
+    UserEquipmentCompanion Function({
+      Value<int> id,
+      Value<int> userId,
+      Value<int> equipmentId,
+    });
+
+final class $$UserEquipmentTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $UserEquipmentTable, UserEquipmentData> {
+  $$UserEquipmentTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $UsersTable _userIdTable(_$AppDatabase db) =>
+      db.users.createAlias('user_equipment__user_id__users__id');
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<int>('user_id')!;
+
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $EquipmentTable _equipmentIdTable(_$AppDatabase db) =>
+      db.equipment.createAlias('user_equipment__equipment_id__equipment__id');
+
+  $$EquipmentTableProcessedTableManager get equipmentId {
+    final $_column = $_itemColumn<int>('equipment_id')!;
+
+    final manager = $$EquipmentTableTableManager(
+      $_db,
+      $_db.equipment,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_equipmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$UserEquipmentTableFilterComposer
+    extends Composer<_$AppDatabase, $UserEquipmentTable> {
+  $$UserEquipmentTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EquipmentTableFilterComposer get equipmentId {
+    final $$EquipmentTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.equipmentId,
+      referencedTable: $db.equipment,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EquipmentTableFilterComposer(
+            $db: $db,
+            $table: $db.equipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserEquipmentTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserEquipmentTable> {
+  $$UserEquipmentTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EquipmentTableOrderingComposer get equipmentId {
+    final $$EquipmentTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.equipmentId,
+      referencedTable: $db.equipment,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EquipmentTableOrderingComposer(
+            $db: $db,
+            $table: $db.equipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserEquipmentTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserEquipmentTable> {
+  $$UserEquipmentTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EquipmentTableAnnotationComposer get equipmentId {
+    final $$EquipmentTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.equipmentId,
+      referencedTable: $db.equipment,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EquipmentTableAnnotationComposer(
+            $db: $db,
+            $table: $db.equipment,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserEquipmentTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserEquipmentTable,
+          UserEquipmentData,
+          $$UserEquipmentTableFilterComposer,
+          $$UserEquipmentTableOrderingComposer,
+          $$UserEquipmentTableAnnotationComposer,
+          $$UserEquipmentTableCreateCompanionBuilder,
+          $$UserEquipmentTableUpdateCompanionBuilder,
+          (UserEquipmentData, $$UserEquipmentTableReferences),
+          UserEquipmentData,
+          PrefetchHooks Function({bool userId, bool equipmentId})
+        > {
+  $$UserEquipmentTableTableManager(_$AppDatabase db, $UserEquipmentTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserEquipmentTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserEquipmentTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserEquipmentTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> userId = const Value.absent(),
+                Value<int> equipmentId = const Value.absent(),
+              }) => UserEquipmentCompanion(
+                id: id,
+                userId: userId,
+                equipmentId: equipmentId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int userId,
+                required int equipmentId,
+              }) => UserEquipmentCompanion.insert(
+                id: id,
+                userId: userId,
+                equipmentId: equipmentId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserEquipmentTable, UserEquipmentData>(table),
+                  $$UserEquipmentTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({userId = false, equipmentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (userId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.userId,
+                        referencedTable: $$UserEquipmentTableReferences
+                            ._userIdTable(db),
+                        referencedColumn: $$UserEquipmentTableReferences
+                            ._userIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (equipmentId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.equipmentId,
+                        referencedTable: $$UserEquipmentTableReferences
+                            ._equipmentIdTable(db),
+                        referencedColumn: $$UserEquipmentTableReferences
+                            ._equipmentIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$UserEquipmentTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserEquipmentTable,
+      UserEquipmentData,
+      $$UserEquipmentTableFilterComposer,
+      $$UserEquipmentTableOrderingComposer,
+      $$UserEquipmentTableAnnotationComposer,
+      $$UserEquipmentTableCreateCompanionBuilder,
+      $$UserEquipmentTableUpdateCompanionBuilder,
+      (UserEquipmentData, $$UserEquipmentTableReferences),
+      UserEquipmentData,
+      PrefetchHooks Function({bool userId, bool equipmentId})
     >;
 typedef $$WeightEntriesTableCreateCompanionBuilder =
     WeightEntriesCompanion Function({
@@ -6371,291 +7496,6 @@ typedef $$GoalsTableProcessedTableManager =
       (Goal, BaseReferences<_$AppDatabase, $GoalsTable, Goal>),
       Goal,
       PrefetchHooks Function()
-    >;
-typedef $$EquipmentTableCreateCompanionBuilder = EquipmentCompanion Function({
-  Value<int> id,
-  required String code,
-  required String name,
-  Value<bool> isActive,
-});
-typedef $$EquipmentTableUpdateCompanionBuilder = EquipmentCompanion Function({
-  Value<int> id,
-  Value<String> code,
-  Value<String> name,
-  Value<bool> isActive,
-});
-
-final class $$EquipmentTableReferences
-    extends BaseReferences<_$AppDatabase, $EquipmentTable, EquipmentData> {
-  $$EquipmentTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<
-    $ExerciseEquipmentTable,
-    List<ExerciseEquipmentData>
-  >
-  _exerciseEquipmentRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.exerciseEquipment,
-        aliasName: 'equipment__id__exercise_equipment__equipment_id',
-      );
-
-  $$ExerciseEquipmentTableProcessedTableManager get exerciseEquipmentRefs {
-    final manager = $$ExerciseEquipmentTableTableManager(
-      $_db,
-      $_db.exerciseEquipment,
-    ).filter((f) => f.equipmentId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _exerciseEquipmentRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$EquipmentTableFilterComposer
-    extends Composer<_$AppDatabase, $EquipmentTable> {
-  $$EquipmentTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get code => $composableBuilder(
-    column: $table.code,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isActive => $composableBuilder(
-    column: $table.isActive,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> exerciseEquipmentRefs(
-    Expression<bool> Function($$ExerciseEquipmentTableFilterComposer f) f,
-  ) {
-    final $$ExerciseEquipmentTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.exerciseEquipment,
-      getReferencedColumn: (t) => t.equipmentId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ExerciseEquipmentTableFilterComposer(
-            $db: $db,
-            $table: $db.exerciseEquipment,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$EquipmentTableOrderingComposer
-    extends Composer<_$AppDatabase, $EquipmentTable> {
-  $$EquipmentTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get code => $composableBuilder(
-    column: $table.code,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isActive => $composableBuilder(
-    column: $table.isActive,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$EquipmentTableAnnotationComposer
-    extends Composer<_$AppDatabase, $EquipmentTable> {
-  $$EquipmentTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get code =>
-      $composableBuilder(column: $table.code, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<bool> get isActive =>
-      $composableBuilder(column: $table.isActive, builder: (column) => column);
-
-  Expression<T> exerciseEquipmentRefs<T extends Object>(
-    Expression<T> Function($$ExerciseEquipmentTableAnnotationComposer a) f,
-  ) {
-    final $$ExerciseEquipmentTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.exerciseEquipment,
-          getReferencedColumn: (t) => t.equipmentId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$ExerciseEquipmentTableAnnotationComposer(
-                $db: $db,
-                $table: $db.exerciseEquipment,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-}
-
-class $$EquipmentTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $EquipmentTable,
-          EquipmentData,
-          $$EquipmentTableFilterComposer,
-          $$EquipmentTableOrderingComposer,
-          $$EquipmentTableAnnotationComposer,
-          $$EquipmentTableCreateCompanionBuilder,
-          $$EquipmentTableUpdateCompanionBuilder,
-          (EquipmentData, $$EquipmentTableReferences),
-          EquipmentData,
-          PrefetchHooks Function({bool exerciseEquipmentRefs})
-        > {
-  $$EquipmentTableTableManager(_$AppDatabase db, $EquipmentTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$EquipmentTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$EquipmentTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$EquipmentTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> code = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<bool> isActive = const Value.absent(),
-              }) => EquipmentCompanion(
-                id: id,
-                code: code,
-                name: name,
-                isActive: isActive,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String code,
-                required String name,
-                Value<bool> isActive = const Value.absent(),
-              }) => EquipmentCompanion.insert(
-                id: id,
-                code: code,
-                name: name,
-                isActive: isActive,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$EquipmentTable, EquipmentData>(table),
-                  $$EquipmentTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({exerciseEquipmentRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (exerciseEquipmentRefs) db.exerciseEquipment,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (exerciseEquipmentRefs)
-                    await $_getPrefetchedData<
-                      EquipmentData,
-                      $EquipmentTable,
-                      ExerciseEquipmentData
-                    >(
-                      currentTable: table,
-                      referencedTable: $$EquipmentTableReferences
-                          ._exerciseEquipmentRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$EquipmentTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).exerciseEquipmentRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.equipmentId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$EquipmentTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $EquipmentTable,
-      EquipmentData,
-      $$EquipmentTableFilterComposer,
-      $$EquipmentTableOrderingComposer,
-      $$EquipmentTableAnnotationComposer,
-      $$EquipmentTableCreateCompanionBuilder,
-      $$EquipmentTableUpdateCompanionBuilder,
-      (EquipmentData, $$EquipmentTableReferences),
-      EquipmentData,
-      PrefetchHooks Function({bool exerciseEquipmentRefs})
     >;
 typedef $$ExercisesTableCreateCompanionBuilder = ExercisesCompanion Function({
   Value<int> id,
@@ -10712,12 +11552,14 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$UsersTableTableManager get users =>
       $$UsersTableTableManager(_db, _db.users);
+  $$EquipmentTableTableManager get equipment =>
+      $$EquipmentTableTableManager(_db, _db.equipment);
+  $$UserEquipmentTableTableManager get userEquipment =>
+      $$UserEquipmentTableTableManager(_db, _db.userEquipment);
   $$WeightEntriesTableTableManager get weightEntries =>
       $$WeightEntriesTableTableManager(_db, _db.weightEntries);
   $$GoalsTableTableManager get goals =>
       $$GoalsTableTableManager(_db, _db.goals);
-  $$EquipmentTableTableManager get equipment =>
-      $$EquipmentTableTableManager(_db, _db.equipment);
   $$ExercisesTableTableManager get exercises =>
       $$ExercisesTableTableManager(_db, _db.exercises);
   $$ExerciseEquipmentTableTableManager get exerciseEquipment =>

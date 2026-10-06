@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database_provider.dart';
 import '../goal_repository.dart';
+import '../user_equipment_repository.dart';
 import '../user_repository.dart';
 import '../weight_entry_repository.dart';
 import '../equipment_repository.dart';
@@ -95,4 +96,10 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   final database = ref.watch(databaseProvider);
 
   return ExerciseRepository(database);
+});
+
+final userEquipmentRepositoryProvider = Provider<UserEquipmentRepository>((ref) {
+  final database = ref.watch(databaseProvider);
+
+  return UserEquipmentRepository(database);
 });
