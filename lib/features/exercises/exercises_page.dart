@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
-import '../../core/database/database_provider.dart';
+import '../../core/database/providers/repository_providers.dart';
+import '../../core/utils/exercise_labels.dart';
 
 class ExercisesPage extends ConsumerStatefulWidget {
   const ExercisesPage({super.key});
@@ -24,6 +25,10 @@ class _ExercisesPageState
 
   String _difficultyFilter = 'all';
   String _muscleFilter = 'all';
+  String _equipmentFilter = 'all';
+
+  Map<int, Set<String>> _requiredEquipment = {};
+  List<EquipmentData> _equipment = [];
 
   @override
   void initState() {
@@ -39,10 +44,13 @@ class _ExercisesPageState
 
   Future<void> _loadExercises() async {
     try {
-      final database = ref.read(databaseProvider);
+      final exerciseRepository = ref.read(exerciseRepositoryProvider);
+      final equipmentRepository = ref.read(equipmentRepositoryProvider);
 
-      final exercises =
-      await database.select(database.exercises).get();
+      final exercises = await exerciseRepository.getAll();
+      final requiredEquipment =
+      await exerciseRepository.getRequiredEquipmentCodes();
+      final equipment = await equipmentRepository.getAll();
 
       if (!mounted) {
         return;
@@ -51,9 +59,13 @@ class _ExercisesPageState
       setState(() {
         _allExercises = exercises;
         _filteredExercises = exercises;
+        _requiredEquipment = requiredEquipment;
+        _equipment = equipment;
         _isLoading = false;
         _errorMessage = null;
       });
+
+      _applyFilters();
     } catch (error) {
       if (!mounted) {
         return;
@@ -69,19 +81,19 @@ class _ExercisesPageState
   }
 
   void _applyFilters() {
-    final search =
-    _searchController.text.trim().toLowerCase();
+    final search = normalizeForSearch(_searchController.text);
 
     final filtered = _allExercises.where((exercise) {
       final matchesSearch =
           search.isEmpty ||
-              exercise.name.toLowerCase().contains(search) ||
-              exercise.primaryMuscle
-                  .toLowerCase()
-                  .contains(search) ||
-              exercise.movementPattern
-                  .toLowerCase()
-                  .contains(search);
+              normalizeForSearch(
+                [
+                  exercise.name,
+                  muscleLabel(exercise.primaryMuscle),
+                  movementPatternLabel(exercise.movementPattern),
+                  _equipmentSummary(exercise),
+                ].join(' '),
+              ).contains(search);
 
       final matchesDifficulty =
           _difficultyFilter == 'all' ||
@@ -93,12 +105,42 @@ class _ExercisesPageState
 
       return matchesSearch &&
           matchesDifficulty &&
-          matchesMuscle;
+          matchesMuscle &&
+          _matchesEquipmentFilter(exercise);
     }).toList();
 
     setState(() {
       _filteredExercises = filtered;
     });
+  }
+
+  bool _matchesEquipmentFilter(Exercise exercise) {
+    if (_equipmentFilter == 'all') {
+      return true;
+    }
+
+    final codes = _requiredEquipment[exercise.id] ?? const <String>{};
+
+    if (_equipmentFilter == 'none') {
+      return codes.isEmpty;
+    }
+
+    return codes.contains(_equipmentFilter);
+  }
+
+  /// "Sin equipo" o los nombres del equipo necesario, p. ej.
+  /// "Mancuernas + Banco" (hace falta todo lo que se lista).
+  String _equipmentSummary(Exercise exercise) {
+    final codes = _requiredEquipment[exercise.id];
+
+    if (codes == null || codes.isEmpty) {
+      return 'Sin equipo';
+    }
+
+    return _equipment
+        .where((item) => codes.contains(item.code))
+        .map((item) => item.name)
+        .join(' + ');
   }
 
   List<String> get _availableMuscles {
@@ -107,63 +149,10 @@ class _ExercisesPageState
         .toSet()
         .toList();
 
-    muscles.sort();
+    muscles.sort(
+          (a, b) => muscleLabel(a).compareTo(muscleLabel(b)),
+    );
     return muscles;
-  }
-
-  String _difficultyLabel(String difficulty) {
-    switch (difficulty) {
-      case 'beginner':
-        return 'Principiante';
-      case 'intermediate':
-        return 'Intermedio';
-      case 'advanced':
-        return 'Avanzado';
-      default:
-        return difficulty;
-    }
-  }
-
-  String _muscleLabel(String muscle) {
-    switch (muscle) {
-      case 'chest':
-        return 'Pecho';
-      case 'back':
-        return 'Espalda';
-      case 'quadriceps':
-        return 'Cuádriceps';
-      case 'hamstrings':
-        return 'Isquiotibiales';
-      case 'glutes':
-        return 'Glúteos';
-      case 'calves':
-        return 'Pantorrillas';
-      case 'shoulders':
-        return 'Hombros';
-      case 'biceps':
-        return 'Bíceps';
-      case 'triceps':
-        return 'Tríceps';
-      case 'core':
-        return 'Core';
-      default:
-        return muscle;
-    }
-  }
-
-  String _exerciseTypeLabel(String type) {
-    switch (type) {
-      case 'strength':
-        return 'Fuerza';
-      case 'cardio':
-        return 'Cardio';
-      case 'mobility':
-        return 'Movilidad';
-      case 'stretching':
-        return 'Estiramiento';
-      default:
-        return type;
-    }
   }
 
   @override
@@ -206,7 +195,7 @@ class _ExercisesPageState
             onChanged: (_) => _applyFilters(),
             decoration: InputDecoration(
               labelText: 'Buscar ejercicio',
-              hintText: 'Ej. sentadilla',
+              hintText: 'Ej. sentadilla, espalda, banda',
               prefixIcon: const Icon(Icons.search),
               suffixIcon:
               _searchController.text.isEmpty
@@ -273,7 +262,7 @@ class _ExercisesPageState
               ..._availableMuscles.map(
                     (muscle) => DropdownMenuItem(
                   value: muscle,
-                  child: Text(_muscleLabel(muscle)),
+                  child: Text(muscleLabel(muscle)),
                 ),
               ),
             ],
@@ -284,6 +273,42 @@ class _ExercisesPageState
 
               setState(() {
                 _muscleFilter = value;
+              });
+
+              _applyFilters();
+            },
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: _equipmentFilter,
+            decoration: const InputDecoration(
+              labelText: 'Equipo',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              const DropdownMenuItem(
+                value: 'all',
+                child: Text('Todo el equipo'),
+              ),
+              const DropdownMenuItem(
+                value: 'none',
+                child: Text('Sin equipo'),
+              ),
+              ..._equipment.map(
+                    (item) => DropdownMenuItem(
+                  value: item.code,
+                  child: Text(item.name),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+
+              setState(() {
+                _equipmentFilter = value;
               });
 
               _applyFilters();
@@ -350,21 +375,25 @@ class _ExercisesPageState
                 children: [
                   _InfoChip(
                     icon: Icons.accessibility_new,
-                    label: _muscleLabel(
+                    label: muscleLabel(
                       exercise.primaryMuscle,
                     ),
                   ),
                   _InfoChip(
                     icon: Icons.signal_cellular_alt,
-                    label: _difficultyLabel(
+                    label: difficultyLabel(
                       exercise.difficulty,
                     ),
                   ),
                   _InfoChip(
                     icon: Icons.category_outlined,
-                    label: _exerciseTypeLabel(
+                    label: exerciseTypeLabel(
                       exercise.exerciseType,
                     ),
+                  ),
+                  _InfoChip(
+                    icon: Icons.fitness_center,
+                    label: _equipmentSummary(exercise),
                   ),
                 ],
               ),
@@ -477,25 +506,29 @@ class _ExercisesPageState
                       children: [
                         _InfoChip(
                           icon: Icons.accessibility_new,
-                          label: _muscleLabel(
+                          label: muscleLabel(
                             exercise.primaryMuscle,
                           ),
                         ),
                         _InfoChip(
                           icon: Icons.signal_cellular_alt,
-                          label: _difficultyLabel(
+                          label: difficultyLabel(
                             exercise.difficulty,
                           ),
                         ),
                         _InfoChip(
                           icon: Icons.category_outlined,
-                          label: _exerciseTypeLabel(
+                          label: exerciseTypeLabel(
                             exercise.exerciseType,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
+                    _DetailSection(
+                      title: 'Equipo necesario',
+                      text: _equipmentSummary(exercise),
+                    ),
                     _DetailSection(
                       title: 'Descripción',
                       text: exercise.description,
@@ -518,7 +551,7 @@ class _ExercisesPageState
                     ),
                     _DetailSection(
                       title: 'Patrón de movimiento',
-                      text: exercise.movementPattern,
+                      text: movementPatternLabel(exercise.movementPattern),
                     ),
                   ],
                 ),
