@@ -288,13 +288,20 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
             position: index + 1,
             name: routine.exercises[index].exercise.name,
             muscle: muscleLabel(routine.exercises[index].exercise.primaryMuscle),
-            detail:
+            prescription:
                 '${routine.exercises[index].sets} series · '
                 '${_repsText(routine.exercises[index].minReps, routine.exercises[index].maxReps)} '
-                'repeticiones · '
-                '${routine.exercises[index].restSeconds} s de descanso',
+                'repeticiones',
+            rest: 'Descanso: ${routine.exercises[index].restSeconds} s',
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
+        Text(
+          'Antes de empezar',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
         if (routine.equipmentTip != null)
           _NoteCard(
             icon: Icons.lightbulb_outline,
@@ -318,9 +325,8 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         const _NoteCard(
           icon: Icons.local_fire_department_outlined,
           text:
-              'Calienta unos 5 minutos antes de empezar: movilidad suave y '
-              'una serie ligera del primer ejercicio. Ya está incluido en el '
-              'tiempo estimado.',
+              'Calienta unos 5 minutos con movilidad suave y una serie ligera '
+              'del primer ejercicio. Ya está incluido en el tiempo estimado.',
         ),
       ],
     );
@@ -375,21 +381,28 @@ class _ExerciseCard extends StatelessWidget {
     required this.position,
     required this.name,
     required this.muscle,
-    required this.detail,
+    required this.prescription,
+    required this.rest,
   });
 
   final int position;
   final String name;
   final String muscle;
-  final String detail;
+
+  /// Series y repeticiones, p. ej. "3 series · 8–10 repeticiones".
+  final String prescription;
+
+  /// Descanso entre series, p. ej. "Descanso: 90 s".
+  final String rest;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return Card(
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -413,8 +426,19 @@ class _ExerciseCard extends StatelessWidget {
                       color: colors.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(detail),
+                  const SizedBox(height: 8),
+                  Text(
+                    prescription,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rest,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -437,8 +461,9 @@ class _NoteCard extends StatelessWidget {
 
     return Card(
       color: colors.secondaryContainer,
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
