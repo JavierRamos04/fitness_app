@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
@@ -72,6 +73,14 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
         _isLoading = false;
         _errorMessage = error.toString();
       });
+    }
+  }
+
+  Future<void> _openSuggestedRoutine() async {
+    final created = await context.push<bool>('/suggested-routine');
+
+    if (created == true && mounted) {
+      await _loadWorkouts();
     }
   }
 
@@ -204,6 +213,11 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
         title: const Text('Rutinas'),
         actions: [
           IconButton(
+            tooltip: 'Rutina sugerida',
+            onPressed: _openSuggestedRoutine,
+            icon: const Icon(Icons.auto_awesome_outlined),
+          ),
+          IconButton(
             tooltip: 'Biblioteca de ejercicios',
             onPressed: () {
               Navigator.of(
@@ -259,9 +273,15 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
+                onPressed: _openSuggestedRoutine,
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: const Text('Crear rutina sugerida'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
                 onPressed: () => _openEditor(),
                 icon: const Icon(Icons.add),
-                label: const Text('Crear rutina'),
+                label: const Text('Crear rutina manualmente'),
               ),
             ],
           ),

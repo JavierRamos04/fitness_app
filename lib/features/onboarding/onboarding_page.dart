@@ -221,7 +221,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         return;
       }
 
-      context.go('/');
+      // Primer uso: se ofrece una rutina lista para empezar.
+      context.go('/suggested-routine');
     } catch (error) {
       if (!mounted) {
         return;

@@ -7,6 +7,7 @@ import '../../features/profile/profile_page.dart';
 import '../../features/progress/progress_page.dart';
 import '../../features/startup/startup_page.dart';
 import '../../features/training/training_page.dart';
+import '../../features/workouts/suggested_routine_page.dart';
 import '../../features/workouts/workouts_page.dart';
 import 'active_tab_reporter.dart';
 
@@ -23,6 +24,12 @@ final GoRouter appRouter = GoRouter(
       path: '/onboarding',
       builder: (context, state) {
         return const OnboardingPage();
+      },
+    ),
+    GoRoute(
+      path: '/suggested-routine',
+      builder: (context, state) {
+        return const SuggestedRoutinePage();
       },
     ),
     StatefulShellRoute.indexedStack(

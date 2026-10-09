@@ -186,6 +186,14 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         : rounded.toString();
   }
 
+  Future<void> _openSuggestedRoutine() async {
+    final created = await context.push<bool>('/suggested-routine');
+
+    if (created == true && mounted) {
+      await _loadTrainingData();
+    }
+  }
+
   void _onActiveTabChanged() {
     if (_activeTab.value != MainTab.training) {
       return;
@@ -630,6 +638,12 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
+                  onPressed: _openSuggestedRoutine,
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: const Text('Crear rutina sugerida'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
                   onPressed: () {
                     context.go('/workouts');
                   },

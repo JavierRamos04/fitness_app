@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../services/suggested_routine_service.dart';
 import '../database_provider.dart';
 import '../goal_repository.dart';
 import '../user_equipment_repository.dart';
@@ -102,4 +103,10 @@ final userEquipmentRepositoryProvider = Provider<UserEquipmentRepository>((ref) 
   final database = ref.watch(databaseProvider);
 
   return UserEquipmentRepository(database);
+});
+
+final suggestedRoutineServiceProvider = Provider<SuggestedRoutineService>((ref) {
+  final database = ref.watch(databaseProvider);
+
+  return SuggestedRoutineService(database);
 });

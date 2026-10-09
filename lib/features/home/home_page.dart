@@ -42,6 +42,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
+  Future<void> _openSuggestedRoutine() async {
+    final created = await context.push<bool>('/suggested-routine');
+
+    if (created == true && mounted) {
+      await _loadHomeData();
+    }
+  }
+
   void _onActiveTabChanged() {
     if (_activeTab.value == MainTab.home) {
       _loadHomeData();
@@ -248,7 +256,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: FilledButton(
                         onPressed: () {
                           if (activeWorkout == null) {
-                            context.go('/workouts');
+                            _openSuggestedRoutine();
                             return;
                           }
 
@@ -256,7 +264,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         },
                         child: Text(
                           activeWorkout == null
-                              ? 'Crear rutina'
+                              ? 'Crear rutina sugerida'
                               : 'Comenzar entrenamiento',
                         ),
                       ),

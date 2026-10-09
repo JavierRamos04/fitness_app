@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../services/routine_generator.dart';
 import 'app_database.dart';
 
 class ExerciseRepository {
@@ -54,5 +55,26 @@ class ExerciseRepository {
 
       return needed.every(ownedEquipmentCodes.contains);
     }).toList();
+  }
+
+  /// Catálogo en el formato que usa el generador de rutinas, en orden de
+  /// creación (el orden desempata de forma estable entre ejercicios).
+  Future<List<GeneratorExercise>> getGeneratorCatalog() async {
+    final exercises = [...await getAll()]
+      ..sort((a, b) => a.id.compareTo(b.id));
+
+    final requirements = await getRequiredEquipmentCodes();
+
+    return [
+      for (final exercise in exercises)
+        GeneratorExercise(
+          id: exercise.id,
+          name: exercise.name,
+          primaryMuscle: exercise.primaryMuscle,
+          movementPattern: exercise.movementPattern,
+          difficulty: exercise.difficulty,
+          requiredEquipment: requirements[exercise.id] ?? const <String>{},
+        ),
+    ];
   }
 }
