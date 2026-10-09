@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/database/set_repository.dart';
 import '../../core/router/active_tab_provider.dart';
+import '../../core/services/progression_advisor.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
 
@@ -41,6 +43,10 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   int _nextSetIndex = 1;
 
   List<WorkoutSet> _registeredSets = [];
+
+  // Memoria: lo que hizo el usuario la última vez con el ejercicio actual.
+  LastPerformance? _lastPerformance;
+  ProgressionSuggestion? _suggestion;
 
   bool _hasRegisteredAnySet = false;
 
@@ -335,6 +341,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     _repetitionsController.clear();
 
     await _loadCurrentSets();
+    await _loadMemory();
   }
 
   Future<void> _loadCurrentSets() async {
@@ -360,6 +367,147 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       _registeredSets = sets;
       _nextSetIndex = sets.length + 1;
     });
+  }
+
+  /// Busca lo que hizo el usuario la última vez con el ejercicio actual,
+  /// calcula la sugerencia de carga y precarga los campos de peso y
+  /// repeticiones. Si falla, la pantalla funciona igual sin memoria.
+  Future<void> _loadMemory() async {
+    final userId = _userId;
+
+    if (userId == null || _plannedExercises.isEmpty) {
+      return;
+    }
+
+    final planned = _plannedExercises[_currentPlannedIndex];
+
+    LastPerformance? last;
+
+    try {
+      last = await ref.read(setRepositoryProvider).getLastPerformance(
+            userId: userId,
+            exerciseId: planned.exerciseId,
+          );
+    } catch (_) {
+      last = null;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    ProgressionSuggestion? suggestion;
+
+    if (last != null) {
+      suggestion = ProgressionAdvisor.suggest(
+        lastSets: last.sets
+            .map(
+              (set) => PerformedSet(
+                weightKg: set.weightKg,
+                repetitions: set.repetitions,
+              ),
+            )
+            .toList(),
+        minReps: planned.minReps,
+        maxReps: planned.maxReps,
+      );
+    }
+
+    setState(() {
+      _lastPerformance = last;
+      _suggestion = suggestion;
+    });
+
+    _applySuggestionToFields();
+  }
+
+  /// Precarga peso y repeticiones con la sugerencia (o vacía los campos si
+  /// no hay historial del ejercicio).
+  void _applySuggestionToFields() {
+    final suggestion = _suggestion;
+
+    if (suggestion == null) {
+      _weightController.clear();
+      _repetitionsController.clear();
+      return;
+    }
+
+    final weight = suggestion.weightKg;
+
+    if (weight == null) {
+      _weightController.clear();
+    } else {
+      _setFieldText(_weightController, _formatWeight(weight));
+    }
+
+    _setFieldText(
+      _repetitionsController,
+      suggestion.repetitions.toString(),
+    );
+  }
+
+  String _formatLastDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  String _formatLastSet(WorkoutSet set) {
+    return set.weightKg == null
+        ? '${set.repetitions} rep.'
+        : '${_formatWeight(set.weightKg!)} kg × ${set.repetitions}';
+  }
+
+  Widget _buildMemoryCard() {
+    final last = _lastPerformance;
+    final suggestion = _suggestion;
+    final scheme = Theme.of(context).colorScheme;
+
+    if (last == null) {
+      return Card(
+        margin: const EdgeInsets.only(top: 16),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'Primera vez con este ejercicio. Empieza con un peso ligero '
+            'y ajústalo según cómo te sientas.',
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(top: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Última vez · ${_formatLastDate(last.sessionStartedAt)}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(last.sets.map(_formatLastSet).join('  ·  ')),
+            if (suggestion != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                suggestion.message,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: suggestion.increasesLoad
+                      ? scheme.primary
+                      : scheme.onSurface,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _registerSet() async {
@@ -415,8 +563,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       return;
     }
 
-    _weightController.clear();
-    _repetitionsController.clear();
+    _applySuggestionToFields();
 
     if (_plannedExercises.isNotEmpty) {
       _startRest(_plannedExercises[_currentPlannedIndex].restSeconds);
@@ -467,6 +614,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     _repetitionsController.clear();
 
     await _loadCurrentSets();
+    await _loadMemory();
   }
 
   Future<void> _finishTraining() async {
@@ -515,6 +663,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       _currentPlannedIndex = 0;
       _nextSetIndex = 1;
       _registeredSets = [];
+      _lastPerformance = null;
+      _suggestion = null;
       _hasRegisteredAnySet = false;
     });
 
@@ -550,6 +700,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       _currentPlannedIndex = 0;
       _nextSetIndex = 1;
       _registeredSets = [];
+      _lastPerformance = null;
+      _suggestion = null;
       _hasRegisteredAnySet = false;
     });
 
@@ -758,6 +910,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                         '${currentExercise.restSeconds}s descanso',
                   ),
                 ],
+                _buildMemoryCard(),
                 if (restRemainingSeconds != null) ...[
                   const SizedBox(height: 20),
                   _RestTimerCard(
