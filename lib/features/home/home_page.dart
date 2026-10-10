@@ -231,6 +231,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(height: 16),
+                    if (activeWorkout != null) ...[
+                      Text(
+                        activeWorkout.planKey == null
+                            ? 'RUTINA ACTIVA'
+                            : 'HOY TOCA',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     Text(
                       activeWorkout == null
                           ? 'Entrenamiento del día'
@@ -245,7 +259,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 'Crea una rutina para comenzar a entrenar.'
                           : '${activeWorkout.estimatedDurationMinutes} '
                                 'minutos · ${activeWorkout.daysPerWeek} '
-                                'días por semana.',
+                                'días por semana.'
+                                '${activeWorkout.planPosition == null ? '' : ' Día ${activeWorkout.planPosition} del plan.'}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),

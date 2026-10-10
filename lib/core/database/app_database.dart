@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +48,12 @@ class AppDatabase extends _$AppDatabase {
       // Versión 2: equipo disponible del usuario.
       if (from < 2) {
         await migrator.createTable(userEquipment);
+      }
+
+      // Versión 3: rutinas agrupadas en un plan semanal.
+      if (from < 3) {
+        await migrator.addColumn(workouts, workouts.planKey);
+        await migrator.addColumn(workouts, workouts.planPosition);
       }
     },
     beforeOpen: (details) async {

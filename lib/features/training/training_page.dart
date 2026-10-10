@@ -657,6 +657,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       return;
     }
 
+    final finishedWorkoutId = _workoutId;
+
     setState(() {
       _clearRest();
       _startedAt = null;
@@ -671,7 +673,40 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     _weightController.clear();
     _repetitionsController.clear();
 
-    _showMessage('Entrenamiento guardado correctamente.');
+    // Si la rutina pertenece a un plan semanal, pasa a tocar la siguiente.
+    String? nextWorkoutName;
+
+    if (finishedWorkoutId != null) {
+      try {
+        final next = await ref
+            .read(workoutRepositoryProvider)
+            .activateNextInPlan(finishedWorkoutId);
+
+        if (next != null && next.id != finishedWorkoutId) {
+          nextWorkoutName = next.name;
+        }
+      } catch (_) {
+        nextWorkoutName = null;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    if (nextWorkoutName != null) {
+      await _loadTrainingData();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    _showMessage(
+      nextWorkoutName == null
+          ? 'Entrenamiento guardado correctamente.'
+          : 'Entrenamiento guardado. Próxima rutina: $nextWorkoutName.',
+    );
   }
 
   Future<void> _cancelTraining() async {

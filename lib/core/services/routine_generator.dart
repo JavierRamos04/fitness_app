@@ -3,8 +3,27 @@ import 'dart:math' as math;
 // Generador de rutinas sugeridas.
 //
 // Lógica pura: no depende de la base de datos ni de Flutter, así que se puede
-// probar con tests. Construye una rutina de cuerpo completo según el nivel, el
-// objetivo, el tiempo disponible y el equipo del usuario.
+// probar con tests. Construye una rutina (de cuerpo completo o centrada en una
+// parte del cuerpo) según el nivel, el objetivo, el tiempo disponible y el
+// equipo del usuario.
+
+/// Qué trabaja una rutina.
+enum RoutineFocus {
+  /// Todo el cuerpo.
+  fullBody,
+
+  /// Torso: empuje y tirón.
+  upper,
+
+  /// Pierna y cadera.
+  lower,
+
+  /// Pecho, hombro y tríceps.
+  push,
+
+  /// Espalda y bíceps.
+  pull,
+}
 
 /// Datos mínimos de un ejercicio que necesita el generador.
 class GeneratorExercise {
@@ -179,13 +198,8 @@ const Map<String, String> _pullTipNames = {
   'pull_up_bar': 'una barra de dominadas',
 };
 
-/// Patrones principales que reciben un ejercicio extra cuando sobra tiempo.
-const List<_Slot> _extraVolumeSlots = [
-  _Slot.legs,
-  _Slot.pushHorizontal,
-  _Slot.pull,
-  _Slot.hinge,
-];
+/// Puntos que se restan a un ejercicio ya usado en otro día del plan.
+const int _avoidPenalty = 6;
 
 const int _warmUpMinutes = 5;
 const int _workSecondsPerSet = 40;
@@ -196,15 +210,21 @@ const int _maxExercises = 9;
 class RoutineGenerator {
   const RoutineGenerator();
 
-  /// Genera una rutina de cuerpo completo.
+  /// Genera una rutina según [focus] (por defecto, cuerpo completo).
   ///
   /// [variant] rota entre las mejores opciones de cada hueco: 0 devuelve la
   /// primera opción y valores mayores devuelven alternativas igual de
   /// adecuadas.
+  ///
+  /// [avoidIds] son ejercicios ya usados en otros días del plan: se evitan
+  /// siempre que haya otra opción razonable, para que dos días del mismo tipo
+  /// no sean idénticos.
   SuggestedRoutine generate({
     required GeneratorProfile profile,
     required List<GeneratorExercise> catalog,
     int variant = 0,
+    RoutineFocus focus = RoutineFocus.fullBody,
+    Set<int> avoidIds = const {},
   }) {
     final goal = _prescriptions.containsKey(profile.goal)
         ? profile.goal
@@ -225,22 +245,8 @@ class RoutineGenerator {
 
     final sets = _setsFor(profile.level, goal, profile.minutes);
 
-    final slots = <_Slot>[
-      _Slot.legs,
-      _Slot.pushHorizontal,
-      _Slot.pull,
-      _Slot.hinge,
-      _Slot.core,
-      _Slot.pushVertical,
-      _Slot.secondPull,
-      _Slot.biceps,
-      _Slot.triceps,
-      _Slot.calves,
-    ];
-
-    if (goal == 'fat_loss') {
-      slots.insert(5, _Slot.cardio);
-    }
+    final slots = _slotsFor(focus, goal);
+    final extraSlots = _extraSlotsFor(focus);
 
     final chosen = <_Choice>[];
     final usedIds = <int>{};
@@ -257,6 +263,7 @@ class RoutineGenerator {
         levelRank: levelRank,
         variant: safeVariant,
         isExtra: isExtra,
+        avoidIds: avoidIds,
       );
 
       if (pick != null) {
@@ -275,7 +282,7 @@ class RoutineGenerator {
 
     // Segunda pasada: con tiempo de sobra y pocos ejercicios distintos, se
     // añade volumen en los patrones principales.
-    for (final slot in _extraVolumeSlots) {
+    for (final slot in extraSlots) {
       if (chosen.length >= _maxExercises) {
         break;
       }
@@ -310,6 +317,95 @@ class RoutineGenerator {
     );
   }
 
+  /// Huecos de la rutina, por orden de prioridad.
+  List<_Slot> _slotsFor(RoutineFocus focus, String goal) {
+    final slots = <_Slot>[];
+
+    switch (focus) {
+      case RoutineFocus.fullBody:
+        slots.addAll(const [
+          _Slot.legs,
+          _Slot.pushHorizontal,
+          _Slot.pull,
+          _Slot.hinge,
+          _Slot.core,
+          _Slot.pushVertical,
+          _Slot.secondPull,
+          _Slot.biceps,
+          _Slot.triceps,
+          _Slot.calves,
+        ]);
+
+        if (goal == 'fat_loss') {
+          slots.insert(5, _Slot.cardio);
+        }
+
+        return slots;
+      case RoutineFocus.upper:
+        slots.addAll(const [
+          _Slot.pushHorizontal,
+          _Slot.pull,
+          _Slot.pushVertical,
+          _Slot.secondPull,
+          _Slot.triceps,
+          _Slot.biceps,
+          _Slot.core,
+        ]);
+      case RoutineFocus.lower:
+        slots.addAll(const [
+          _Slot.legs,
+          _Slot.hinge,
+          _Slot.legs,
+          _Slot.calves,
+          _Slot.core,
+        ]);
+      case RoutineFocus.push:
+        slots.addAll(const [
+          _Slot.pushHorizontal,
+          _Slot.pushVertical,
+          _Slot.pushHorizontal,
+          _Slot.triceps,
+          _Slot.pushVertical,
+          _Slot.core,
+        ]);
+      case RoutineFocus.pull:
+        slots.addAll(const [
+          _Slot.pull,
+          _Slot.secondPull,
+          _Slot.pull,
+          _Slot.biceps,
+          _Slot.core,
+        ]);
+    }
+
+    if (goal == 'fat_loss') {
+      slots.add(_Slot.cardio);
+    }
+
+    return slots;
+  }
+
+  /// Patrones principales que reciben un ejercicio extra cuando sobra tiempo.
+  List<_Slot> _extraSlotsFor(RoutineFocus focus) {
+    switch (focus) {
+      case RoutineFocus.fullBody:
+        return const [
+          _Slot.legs,
+          _Slot.pushHorizontal,
+          _Slot.pull,
+          _Slot.hinge,
+        ];
+      case RoutineFocus.upper:
+        return const [_Slot.pushHorizontal, _Slot.pull];
+      case RoutineFocus.lower:
+        return const [_Slot.legs, _Slot.hinge];
+      case RoutineFocus.push:
+        return const [_Slot.pushHorizontal, _Slot.pushVertical];
+      case RoutineFocus.pull:
+        return const [_Slot.pull, _Slot.secondPull];
+    }
+  }
+
   /// Elige el mejor ejercicio disponible para un hueco, o `null` si no hay.
   GeneratorExercise? _pickForSlot({
     required _Slot slot,
@@ -321,6 +417,7 @@ class RoutineGenerator {
     required int levelRank,
     required int variant,
     required bool isExtra,
+    required Set<int> avoidIds,
   }) {
     var candidates = pool
         .where(
@@ -372,7 +469,8 @@ class RoutineGenerator {
     }
 
     for (final candidate in candidates) {
-      candidate.score = _score(candidate.exercise, slot, goal, levelRank);
+      candidate.score = _score(candidate.exercise, slot, goal, levelRank) -
+          (avoidIds.contains(candidate.exercise.id) ? _avoidPenalty : 0);
     }
 
     candidates.sort((a, b) {

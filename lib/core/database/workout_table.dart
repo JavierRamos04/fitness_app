@@ -22,4 +22,11 @@ class Workouts extends Table {
       boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get createdAt => dateTime()();
+
+  /// Identifica el plan semanal al que pertenece la rutina. `null` si es una
+  /// rutina suelta (creada a mano).
+  TextColumn get planKey => text().nullable()();
+
+  /// Orden de la rutina dentro de su plan (1, 2, 3…). `null` si no tiene plan.
+  IntColumn get planPosition => integer().nullable()();
 }

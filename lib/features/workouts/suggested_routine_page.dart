@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/services/routine_generator.dart';
+import '../../core/services/routine_planner.dart';
 import '../../core/utils/exercise_labels.dart';
 
-/// Muestra una rutina de cuerpo completo generada según el perfil del usuario
-/// y le deja usarla, pedir otra o descartarla.
+/// Muestra el plan semanal (una rutina por día de entrenamiento) generado
+/// según el perfil del usuario y le deja usarlo, pedir otro o descartarlo.
 ///
 /// Devuelve `true` al cerrarse si se creó la rutina. Si se abrió sin una
 /// pantalla anterior (por ejemplo, al terminar el onboarding), navega al
@@ -35,7 +36,8 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
   /// `home` o `gym`: dónde se va a usar la rutina.
   String _trainAt = 'gym';
   int _variant = 0;
-  SuggestedRoutine? _routine;
+  List<PlannedRoutine> _plan = [];
+  int _selectedDay = 0;
 
   @override
   void initState() {
@@ -86,7 +88,8 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         _homeEquipment = homeEquipment;
         _trainAt = user.trainingLocation == 'gym' ? 'gym' : 'home';
         _variant = 0;
-        _routine = _buildRoutine();
+        _plan = _buildPlan();
+        _selectedDay = 0;
         _isLoading = false;
       });
     } catch (error) {
@@ -101,10 +104,10 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
     }
   }
 
-  SuggestedRoutine _buildRoutine() {
+  List<PlannedRoutine> _buildPlan() {
     final user = _user!;
 
-    return const RoutineGenerator().generate(
+    return const RoutinePlanner().generate(
       profile: GeneratorProfile(
         level: user.fitnessLevel,
         goal: _goalType,
@@ -112,6 +115,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         equipment: _trainAt == 'gym' ? _allEquipment : _homeEquipment,
       ),
       catalog: _catalog,
+      daysPerWeek: user.weeklyFrequency,
       variant: _variant,
     );
   }
@@ -119,19 +123,19 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
   void _regenerate() {
     setState(() {
       _variant++;
-      _routine = _buildRoutine();
+      _plan = _buildPlan();
+      _selectedDay = 0;
     });
   }
 
-  String _routineName() {
-    return 'Cuerpo completo · ${_trainAt == 'gym' ? 'Gimnasio' : 'Casa'}';
+  String _locationSuffix() {
+    return ' · ${_trainAt == 'gym' ? 'Gimnasio' : 'Casa'}';
   }
 
   Future<void> _useRoutine() async {
-    final routine = _routine;
     final user = _user;
 
-    if (routine == null || user == null || _isSaving) {
+    if (_plan.isEmpty || user == null || _isSaving) {
       return;
     }
 
@@ -140,25 +144,28 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
     });
 
     try {
-      final name = _routineName();
-
       await ref
           .read(suggestedRoutineServiceProvider)
-          .saveAndActivate(
+          .savePlanAndActivate(
             userId: user.id,
-            name: name,
             goal: _goalType,
             difficulty: user.fitnessLevel,
             daysPerWeek: user.weeklyFrequency,
-            routine: routine,
+            plan: _plan,
+            nameSuffix: _locationSuffix(),
           );
 
       if (!mounted) {
         return;
       }
 
+      final message = _plan.length == 1
+          ? 'Tu rutina está lista y activa.'
+          : 'Tu plan de ${_plan.length} días está listo. '
+                'Hoy toca: ${_plan.first.day.name}.';
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('La rutina "$name" está lista y activa.')),
+        SnackBar(content: Text(message)),
       );
 
       _close(created: true);
@@ -172,7 +179,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar la rutina: $error')),
+        SnackBar(content: Text('No se pudo guardar el plan: $error')),
       );
     }
   }
@@ -205,7 +212,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rutina sugerida')),
+      appBar: AppBar(title: const Text('Plan sugerido')),
       body: _buildBody(),
       bottomNavigationBar: _buildActions(),
     );
@@ -233,11 +240,20 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
     }
 
     final user = _user;
-    final routine = _routine;
 
-    if (user == null || routine == null) {
+    if (user == null || _plan.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final selected = _plan[_selectedDay.clamp(0, _plan.length - 1)];
+    final routine = selected.routine;
+    final longestMinutes = _plan
+        .map((item) => item.routine.estimatedMinutes)
+        .reduce((a, b) => a > b ? a : b);
+    final equipmentTip = _plan
+        .map((item) => item.routine.equipmentTip)
+        .whereType<String>()
+        .firstOrNull;
 
     final colors = Theme.of(context).colorScheme;
 
@@ -245,7 +261,9 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
         Text(
-          'Cuerpo completo',
+          _plan.length == 1
+              ? 'Tu rutina'
+              : 'Tu plan de ${_plan.length} días',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -253,8 +271,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         const SizedBox(height: 6),
         Text(
           '${_goalLabel(_goalType)} · ${difficultyLabel(user.fitnessLevel)} · '
-          '${routine.exercises.length} ejercicios · '
-          '~${routine.estimatedMinutes} min',
+          '${user.weeklyFrequency} días por semana',
           style: TextStyle(color: colors.onSurfaceVariant),
         ),
         if (user.trainingLocation == 'both') ...[
@@ -277,12 +294,45 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
               setState(() {
                 _trainAt = selection.first;
                 _variant = 0;
-                _routine = _buildRoutine();
+                _plan = _buildPlan();
+                _selectedDay = 0;
               });
             },
           ),
         ],
+        if (_plan.length > 1) ...[
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var day = 0; day < _plan.length; day++)
+                ChoiceChip(
+                  label: Text('Día ${day + 1}'),
+                  selected: day == _selectedDay,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedDay = day;
+                    });
+                  },
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
+        Text(
+          selected.day.name,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${routine.exercises.length} ejercicios · '
+          '~${routine.estimatedMinutes} min',
+          style: TextStyle(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
         for (var index = 0; index < routine.exercises.length; index++)
           _ExerciseCard(
             position: index + 1,
@@ -302,25 +352,32 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),
-        if (routine.equipmentTip != null)
+        if (_plan.length > 1)
+          const _NoteCard(
+            icon: Icons.autorenew,
+            text:
+                'Al terminar un entrenamiento, la app activa sola el '
+                'siguiente día del plan. En Inicio verás cuál toca hoy.',
+          ),
+        if (equipmentTip != null)
           _NoteCard(
             icon: Icons.lightbulb_outline,
-            text: routine.equipmentTip!,
+            text: equipmentTip,
           ),
-        if (routine.estimatedMinutes > user.availableMinutes)
+        if (longestMinutes > user.availableMinutes)
           _NoteCard(
             icon: Icons.schedule,
             text:
-                'Esta rutina dura unos ${routine.estimatedMinutes} min, más de '
+                'Algún día del plan dura hasta $longestMinutes min, más de '
                 'los ${user.availableMinutes} que tienes disponibles. Puedes '
                 'cambiar tus minutos disponibles en Perfil.',
           ),
-        if (user.weeklyFrequency >= 5)
+        if (user.weeklyFrequency >= 6)
           const _NoteCard(
             icon: Icons.event_repeat,
             text:
-                'Es una rutina de cuerpo completo: úsala 3 o 4 días por semana '
-                'y descansa los demás para recuperarte bien.',
+                'Con 6 o 7 días por semana el plan se repite. Procura '
+                'descansar al menos un día para recuperarte bien.',
           ),
         const _NoteCard(
           icon: Icons.local_fire_department_outlined,
@@ -333,7 +390,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
   }
 
   Widget? _buildActions() {
-    if (_isLoading || _errorMessage != null || _routine == null) {
+    if (_isLoading || _errorMessage != null || _plan.isEmpty) {
       return null;
     }
 
@@ -348,7 +405,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
               child: FilledButton.icon(
                 onPressed: _isSaving ? null : _useRoutine,
                 icon: const Icon(Icons.check),
-                label: const Text('Usar esta rutina'),
+                label: Text(_plan.length == 1 ? 'Usar esta rutina' : 'Usar este plan'),
               ),
             ),
             const SizedBox(height: 8),

@@ -37,6 +37,8 @@ class WorkoutRepository {
     required String difficulty,
     required int daysPerWeek,
     required int estimatedDurationMinutes,
+    String? planKey,
+    int? planPosition,
   }) async {
     return _database.into(_database.workouts).insert(
       WorkoutsCompanion.insert(
@@ -47,6 +49,8 @@ class WorkoutRepository {
         daysPerWeek: daysPerWeek,
         estimatedDurationMinutes: estimatedDurationMinutes,
         createdAt: DateTime.now(),
+        planKey: Value(planKey),
+        planPosition: Value(planPosition),
       ),
     );
   }
@@ -85,6 +89,54 @@ class WorkoutRepository {
         ),
       );
     });
+  }
+
+  /// Rutinas de un plan semanal, en el orden del plan.
+  Future<List<Workout>> getPlanWorkouts({
+    required int userId,
+    required String planKey,
+  }) {
+    return (_database.select(_database.workouts)
+      ..where(
+            (table) =>
+        table.userId.equals(userId) & table.planKey.equals(planKey),
+      )
+      ..orderBy([
+            (table) => OrderingTerm.asc(table.planPosition),
+            (table) => OrderingTerm.asc(table.id),
+      ]))
+        .get();
+  }
+
+  /// Activa la siguiente rutina del plan al que pertenece [workoutId]
+  /// (después de la última vuelve a la primera) y la devuelve.
+  ///
+  /// Devuelve `null` si la rutina ya no existe o no pertenece a un plan; en
+  /// ese caso no se cambia nada.
+  Future<Workout?> activateNextInPlan(int workoutId) async {
+    final current = await getById(workoutId);
+    final planKey = current?.planKey;
+
+    if (current == null || planKey == null) {
+      return null;
+    }
+
+    final planWorkouts = await getPlanWorkouts(
+      userId: current.userId,
+      planKey: planKey,
+    );
+
+    final index = planWorkouts.indexWhere((item) => item.id == workoutId);
+
+    if (index == -1) {
+      return null;
+    }
+
+    final next = planWorkouts[(index + 1) % planWorkouts.length];
+
+    await setActive(next.id);
+
+    return next;
   }
 
   Future<void> delete(int workoutId) async {

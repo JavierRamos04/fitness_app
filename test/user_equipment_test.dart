@@ -98,17 +98,47 @@ void main() {
   });
 
   group('Migración de la base de datos', () {
-    test('pasar de la versión 1 a la 2 crea la tabla user_equipment', () async {
-      final upgrading = AppDatabase(
+    // Tabla de rutinas tal como era antes de la versión 3 (sin las columnas
+    // del plan semanal).
+    const oldWorkoutsTable =
+        'CREATE TABLE workouts ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'user_id INTEGER NOT NULL, '
+        'name TEXT NOT NULL, '
+        'goal TEXT NOT NULL, '
+        'difficulty TEXT NOT NULL, '
+        'days_per_week INTEGER NOT NULL, '
+        'estimated_duration_minutes INTEGER NOT NULL, '
+        'is_active INTEGER NOT NULL DEFAULT 0, '
+        'created_at INTEGER NOT NULL'
+        ');';
+
+    AppDatabase openOldDatabase({required int version, bool withRow = false}) {
+      return AppDatabase(
         DatabaseConnection(
           NativeDatabase.memory(
             setup: (rawDatabase) {
-              rawDatabase.execute('PRAGMA user_version = 1;');
+              rawDatabase.execute(oldWorkoutsTable);
+
+              if (withRow) {
+                rawDatabase.execute(
+                  "INSERT INTO workouts (user_id, name, goal, difficulty, "
+                  "days_per_week, estimated_duration_minutes, is_active, "
+                  "created_at) VALUES (1, 'Rutina vieja', 'strength', "
+                  "'beginner', 3, 45, 1, 1700000000);",
+                );
+              }
+
+              rawDatabase.execute('PRAGMA user_version = $version;');
             },
           ),
           closeStreamsSynchronously: true,
         ),
       );
+    }
+
+    test('pasar de la versión 1 a la 2 crea la tabla user_equipment', () async {
+      final upgrading = openOldDatabase(version: 1);
 
       final rows = await upgrading
           .customSelect(
@@ -118,6 +148,21 @@ void main() {
           .get();
 
       expect(rows.length, 1);
+
+      await upgrading.close();
+    });
+
+    test('pasar de la versión 2 a la 3 añade las columnas del plan y '
+        'conserva las rutinas', () async {
+      final upgrading = openOldDatabase(version: 2, withRow: true);
+
+      final workouts = await upgrading.select(upgrading.workouts).get();
+
+      expect(workouts.length, 1);
+      expect(workouts.first.name, 'Rutina vieja');
+      expect(workouts.first.isActive, isTrue);
+      expect(workouts.first.planKey, isNull);
+      expect(workouts.first.planPosition, isNull);
 
       await upgrading.close();
     });
