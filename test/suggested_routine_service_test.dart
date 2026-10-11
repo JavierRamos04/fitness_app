@@ -63,7 +63,7 @@ void main() {
   test('el catálogo del generador sale completo y en orden', () async {
     final catalog = await ExerciseRepository(database).getGeneratorCatalog();
 
-    expect(catalog.length, 57);
+    expect(catalog.length, 62);
 
     final ids = catalog.map((exercise) => exercise.id).toList();
     final sortedIds = [...ids]..sort();

@@ -80,6 +80,16 @@ class SuggestedExercise {
   final int minReps;
   final int maxReps;
   final int restSeconds;
+
+  SuggestedExercise copyWith({int? sets}) {
+    return SuggestedExercise(
+      exercise: exercise,
+      sets: sets ?? this.sets,
+      minReps: minReps,
+      maxReps: maxReps,
+      restSeconds: restSeconds,
+    );
+  }
 }
 
 class SuggestedRoutine {
@@ -219,12 +229,18 @@ class RoutineGenerator {
   /// [avoidIds] son ejercicios ya usados en otros días del plan: se evitan
   /// siempre que haya otra opción razonable, para que dos días del mismo tipo
   /// no sean idénticos.
+  ///
+  /// [rotation] es el número de veces que ya se generó este mismo tipo de día
+  /// en el plan (0 para "A", 1 para "B"…). Rota el orden de los ejercicios
+  /// accesorios para que, al recortar por tiempo, cada día conserve unos
+  /// distintos y entre todos cubran el cuerpo entero durante la semana.
   SuggestedRoutine generate({
     required GeneratorProfile profile,
     required List<GeneratorExercise> catalog,
     int variant = 0,
     RoutineFocus focus = RoutineFocus.fullBody,
     Set<int> avoidIds = const {},
+    int rotation = 0,
   }) {
     final goal = _prescriptions.containsKey(profile.goal)
         ? profile.goal
@@ -245,7 +261,7 @@ class RoutineGenerator {
 
     final sets = _setsFor(profile.level, goal, profile.minutes);
 
-    final slots = _slotsFor(focus, goal);
+    final slots = _slotsFor(focus, goal, rotation);
     final extraSlots = _extraSlotsFor(focus);
 
     final chosen = <_Choice>[];
@@ -302,9 +318,25 @@ class RoutineGenerator {
     ];
 
     // Se llenan los huecos por prioridad y se recorta desde el final hasta
-    // que la rutina quepa en el tiempo disponible.
+    // que la rutina quepa en el tiempo disponible. Los ejercicios principales
+    // van primero: solo cuando ya solo quedan ellos y aun así no caben, se
+    // bajan las series (4 a 3) antes de quitar alguno.
+    final mainCount = chosen.where((choice) => _isMain(choice.slot)).length;
+
+    var currentSets = sets;
+
     while (exercises.length > _minExercises &&
         _estimateMinutes(exercises) > profile.minutes) {
+      if (exercises.length <= mainCount && currentSets > 3) {
+        currentSets = 3;
+
+        for (var index = 0; index < exercises.length; index++) {
+          exercises[index] = exercises[index].copyWith(sets: 3);
+        }
+
+        continue;
+      }
+
       exercises.removeLast();
     }
 
@@ -318,23 +350,33 @@ class RoutineGenerator {
   }
 
   /// Huecos de la rutina, por orden de prioridad.
-  List<_Slot> _slotsFor(RoutineFocus focus, String goal) {
+  ///
+  /// Los huecos principales van siempre primero; los accesorios se rotan según
+  /// [rotation] (ver [generate]).
+  List<_Slot> _slotsFor(RoutineFocus focus, String goal, int rotation) {
     final slots = <_Slot>[];
 
     switch (focus) {
       case RoutineFocus.fullBody:
-        slots.addAll(const [
-          _Slot.legs,
-          _Slot.pushHorizontal,
-          _Slot.pull,
-          _Slot.hinge,
-          _Slot.core,
-          _Slot.pushVertical,
-          _Slot.secondPull,
-          _Slot.biceps,
-          _Slot.triceps,
-          _Slot.calves,
-        ]);
+        slots.addAll(
+          _rotated(
+            main: const [
+              _Slot.legs,
+              _Slot.pushHorizontal,
+              _Slot.pull,
+              _Slot.hinge,
+            ],
+            accessories: const [
+              _Slot.core,
+              _Slot.pushVertical,
+              _Slot.secondPull,
+              _Slot.biceps,
+              _Slot.triceps,
+              _Slot.calves,
+            ],
+            rotation: rotation,
+          ),
+        );
 
         if (goal == 'fat_loss') {
           slots.insert(5, _Slot.cardio);
@@ -342,23 +384,27 @@ class RoutineGenerator {
 
         return slots;
       case RoutineFocus.upper:
-        slots.addAll(const [
-          _Slot.pushHorizontal,
-          _Slot.pull,
-          _Slot.pushVertical,
-          _Slot.secondPull,
-          _Slot.triceps,
-          _Slot.biceps,
-          _Slot.core,
-        ]);
+        slots.addAll(
+          _rotated(
+            main: const [_Slot.pushHorizontal, _Slot.pull],
+            accessories: const [
+              _Slot.pushVertical,
+              _Slot.secondPull,
+              _Slot.triceps,
+              _Slot.biceps,
+              _Slot.core,
+            ],
+            rotation: rotation,
+          ),
+        );
       case RoutineFocus.lower:
-        slots.addAll(const [
-          _Slot.legs,
-          _Slot.hinge,
-          _Slot.legs,
-          _Slot.calves,
-          _Slot.core,
-        ]);
+        slots.addAll(
+          _rotated(
+            main: const [_Slot.legs, _Slot.hinge, _Slot.legs],
+            accessories: const [_Slot.calves, _Slot.core],
+            rotation: rotation,
+          ),
+        );
       case RoutineFocus.push:
         slots.addAll(const [
           _Slot.pushHorizontal,
@@ -383,6 +429,25 @@ class RoutineGenerator {
     }
 
     return slots;
+  }
+
+  /// Devuelve [main] seguido de [accessories] rotados [rotation] veces.
+  List<_Slot> _rotated({
+    required List<_Slot> main,
+    required List<_Slot> accessories,
+    required int rotation,
+  }) {
+    if (accessories.isEmpty || rotation <= 0) {
+      return [...main, ...accessories];
+    }
+
+    final shift = (rotation * (accessories.length + 1) ~/ 3) % accessories.length;
+
+    return [
+      ...main,
+      ...accessories.sublist(shift),
+      ...accessories.sublist(0, shift),
+    ];
   }
 
   /// Patrones principales que reciben un ejercicio extra cuando sobra tiempo.
@@ -630,6 +695,12 @@ class RoutineGenerator {
     }
 
     if (_difficultyRank(exercise.difficulty) == levelRank) {
+      score += 1;
+    }
+
+    // En la bisagra de cadera se prefiere el ejercicio de isquiotibiales, que
+    // si no quedarían sin trabajar al elegir solo ejercicios de glúteo.
+    if (slot == _Slot.hinge && exercise.primaryMuscle == 'hamstrings') {
       score += 1;
     }
 

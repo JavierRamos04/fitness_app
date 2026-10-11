@@ -274,4 +274,165 @@ void main() {
       }
     });
   });
+
+  group('Calidad del plan semanal', () {
+    final equipmentSets = <String, Set<String>>{
+      'sin equipo': {},
+      'solo banda': {'resistance_band'},
+      'mancuernas y banco': {'dumbbells', 'bench'},
+      'casa completa': {
+        'dumbbells',
+        'resistance_band',
+        'bench',
+        'pull_up_bar',
+        'barbell',
+      },
+      'gimnasio': allEquipment,
+    };
+
+    const levels = ['beginner', 'intermediate', 'advanced'];
+    const goals = ['strength', 'hypertrophy', 'fat_loss', 'general_fitness'];
+
+    /// Series semanales por grupo muscular. Con 6 o 7 días el plan de 3
+    /// rutinas se repite, así que cada rutina cuenta doble.
+    Map<String, int> weeklySets(List<PlannedRoutine> result, int days) {
+      const groups = {
+        'chest': 'chest',
+        'shoulders': 'shoulders',
+        'upper_back': 'back',
+        'latissimus': 'back',
+        'lower_back': 'lowBack',
+        'quadriceps': 'quads',
+        'hamstrings': 'posterior',
+        'glutes': 'posterior',
+      };
+
+      final repeats = days >= 6 ? 2 : 1;
+      final totals = <String, int>{};
+
+      for (final item in result) {
+        for (final entry in item.routine.exercises) {
+          final group = groups[entry.exercise.primaryMuscle];
+
+          if (group != null) {
+            totals[group] = (totals[group] ?? 0) + entry.sets * repeats;
+          }
+        }
+      }
+
+      return totals;
+    }
+
+    test('sin equipo, el día de tirón tiene ejercicios de espalda de verdad',
+        () {
+      final days = plan(
+        level: 'beginner',
+        goal: 'strength',
+        minutes: 60,
+        equipment: <String>{},
+        days: 6,
+      );
+
+      final names = days[1].routine.exercises
+          .map((item) => item.exercise.name)
+          .toList();
+
+      expect(days[1].day.name, 'Tirón');
+      expect(names.length, greaterThanOrEqualTo(4));
+      expect(names, contains('Remo invertido con rodillas dobladas'));
+      expect(names, contains('Remo con mochila'));
+    });
+
+    test('con 60 minutos o más, cada semana trabaja pecho, espalda, '
+        'cuádriceps y cadera, y equilibra empuje y tirón', () {
+      for (final equipmentEntry in equipmentSets.entries) {
+        for (final level in levels) {
+          for (final goal in goals) {
+            for (final minutes in [60, 90]) {
+              for (var days = 2; days <= 7; days++) {
+                for (var variant = 0; variant < 2; variant++) {
+                  final label =
+                      '${equipmentEntry.key} / $level / $goal / $minutes min / '
+                      '$days días / variante $variant';
+
+                  final totals = weeklySets(
+                    plan(
+                      level: level,
+                      goal: goal,
+                      minutes: minutes,
+                      equipment: equipmentEntry.value,
+                      days: days,
+                      variant: variant,
+                    ),
+                    days,
+                  );
+
+                  expect(totals['chest'] ?? 0, greaterThan(0), reason: label);
+                  expect(totals['back'] ?? 0, greaterThan(0), reason: label);
+                  expect(totals['quads'] ?? 0, greaterThan(0), reason: label);
+                  expect(totals['posterior'] ?? 0, greaterThan(0),
+                      reason: label);
+
+                  final push =
+                      (totals['chest'] ?? 0) + (totals['shoulders'] ?? 0);
+                  final pull =
+                      (totals['back'] ?? 0) + (totals['lowBack'] ?? 0);
+                  final ratio = push / pull;
+
+                  expect(ratio, inInclusiveRange(0.5, 2.5),
+                      reason: 'Empuje/tirón $ratio: $label');
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    test('en planes de 2 o 3 días el ejercicio de core no se repite', () {
+      for (final equipmentEntry in equipmentSets.entries) {
+        for (final level in levels) {
+          for (final goal in goals) {
+            for (final minutes in [45, 60, 90]) {
+              for (final days in [2, 3]) {
+                final names = [
+                  for (final item in plan(
+                    level: level,
+                    goal: goal,
+                    minutes: minutes,
+                    equipment: equipmentEntry.value,
+                    days: days,
+                  ))
+                    for (final entry in item.routine.exercises)
+                      if (entry.exercise.movementPattern.startsWith('core_'))
+                        entry.exercise.name,
+                ];
+
+                expect(
+                  names.toSet().length,
+                  names.length,
+                  reason:
+                      '${equipmentEntry.key} / $level / $goal / $minutes min / '
+                      '$days días: $names',
+                );
+              }
+            }
+          }
+        }
+      }
+    });
+
+    test('los tres días de cuerpo completo conservan ejercicios distintos', () {
+      final days = plan(days: 3, minutes: 60);
+
+      final lists = [
+        for (final item in days)
+          item.routine.exercises.map((entry) => entry.exercise.id).toList(),
+      ];
+
+      expect(lists[0], isNot(lists[1]));
+      expect(lists[1], isNot(lists[2]));
+      expect(lists[0], isNot(lists[2]));
+    });
+  });
 }

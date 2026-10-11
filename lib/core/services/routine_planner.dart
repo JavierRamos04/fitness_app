@@ -82,20 +82,34 @@ class RoutinePlanner {
   }) {
     const generator = RoutineGenerator();
     final usedByFocus = <RoutineFocus, Set<int>>{};
+    final timesByFocus = <RoutineFocus, int>{};
+    final usedCore = <int>{};
     final result = <PlannedRoutine>[];
 
     for (final day in daysFor(daysPerWeek)) {
       final used = usedByFocus.putIfAbsent(day.focus, () => <int>{});
+      final rotation = timesByFocus[day.focus] ?? 0;
+
+      timesByFocus[day.focus] = rotation + 1;
 
       final routine = generator.generate(
         profile: profile,
         catalog: catalog,
         variant: variant,
         focus: day.focus,
-        avoidIds: Set<int>.of(used),
+        // El core también se evita entre días de distinto tipo: así no sale
+        // el mismo ejercicio de abdomen todos los días.
+        avoidIds: {...used, ...usedCore},
+        rotation: rotation,
       );
 
       used.addAll(routine.exercises.map((item) => item.exercise.id));
+
+      usedCore.addAll(
+        routine.exercises
+            .where((item) => item.exercise.movementPattern.startsWith('core_'))
+            .map((item) => item.exercise.id),
+      );
 
       result.add(PlannedRoutine(day: day, routine: routine));
     }

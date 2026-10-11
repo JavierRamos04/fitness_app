@@ -1274,4 +1274,113 @@ const Map<String, ExerciseGuide> exerciseGuides = {
     harder: 'Más peso o más distancia.',
     breathing: 'Respira de forma lenta y continua mientras caminas.',
   ),
+
+  // ───────────── Variantes para casa (sin equipo) ─────────────
+  'Remo invertido con rodillas dobladas': ExerciseGuide(
+    steps: [
+      'Acuéstate debajo de una mesa resistente y estable y sujeta el borde con ambas manos, un poco más abiertas que los hombros.',
+      'Dobla las rodillas y apoya los pies en el suelo; eleva la cadera hasta alinear hombros, cadera y rodillas.',
+      'Jala el pecho hacia el borde de la mesa juntando los omóplatos.',
+      'Baja despacio hasta estirar los brazos, sin dejar caer la cadera.',
+    ],
+    cues: [
+      'Cuerpo en línea desde los hombros hasta las rodillas.',
+      'Codos hacia atrás y cerca del cuerpo.',
+      'Junta los omóplatos arriba.',
+    ],
+    mistakes: [
+      'Dejar caer la cadera.',
+      'Jalar solo con los brazos.',
+      'Usar una mesa inestable.',
+    ],
+    safety: 'Usa una mesa pesada y resistente que no se mueva ni se rompa. Prueba primero con poco esfuerzo.',
+    easier: 'Acerca los pies al cuerpo para quedar más vertical.',
+    harder: 'Estira las piernas (remo invertido bajo mesa).',
+  ),
+  'Remo con mochila': ExerciseGuide(
+    steps: [
+      'Carga una mochila con libros o botellas y ciérrala bien; sujétala por las asas con ambas manos.',
+      'Párate con los pies a la anchura de la cadera, las rodillas ligeramente flexionadas, e inclina el torso hacia adelante con la espalda recta.',
+      'Deja la mochila colgando frente a las rodillas, con los brazos estirados.',
+      'Jala la mochila hacia el abdomen llevando los codos hacia atrás y cerca del cuerpo.',
+      'Baja con control hasta estirar los brazos.',
+    ],
+    cues: [
+      'Espalda recta, con la cadera hacia atrás.',
+      'El torso se queda quieto: la espalda hace el trabajo.',
+      'Junta los omóplatos arriba.',
+    ],
+    mistakes: [
+      'Redondear la espalda.',
+      'Impulsarte con el torso.',
+      'Usar una mochila mal cerrada que se desbalancea.',
+    ],
+    safety: 'Si la espalda baja se cansa o se redondea, usa menos peso o apóyate con una mano en una silla.',
+    easier: 'Usa menos peso o apoya una mano en una silla.',
+    harder: 'Más peso en la mochila o una pausa de 2 segundos arriba.',
+  ),
+  'Curl de bíceps con mochila': ExerciseGuide(
+    steps: [
+      'Carga una mochila, ciérrala bien y sujétala por las asas con ambas manos.',
+      'De pie, con los brazos estirados frente a los muslos y los codos pegados a las costillas.',
+      'Dobla los codos y sube la mochila hacia el pecho.',
+      'Aprieta el bíceps arriba durante un instante.',
+      'Baja despacio hasta estirar los brazos.',
+    ],
+    cues: [
+      'Codos fijos junto al cuerpo.',
+      'Sin balancear el torso.',
+      'Baja en 2–3 segundos.',
+    ],
+    mistakes: [
+      'Balancear el cuerpo para subir el peso.',
+      'Mover los codos hacia adelante.',
+      'No estirar del todo los brazos abajo.',
+    ],
+    easier: 'Usa una mochila más ligera.',
+    harder: 'Más peso, o baja la mochila en 3–4 segundos.',
+  ),
+  'Press de hombros con mochila': ExerciseGuide(
+    steps: [
+      'Carga una mochila, ciérrala bien y sujétala por las asas contra el pecho.',
+      'De pie, con los pies a la anchura de los hombros; aprieta abdomen y glúteos.',
+      'Empuja la mochila hacia arriba hasta estirar los brazos sobre la cabeza.',
+      'Baja con control hasta el pecho.',
+    ],
+    cues: [
+      'Abdomen firme, costillas hacia abajo.',
+      'Empuja en línea recta sobre la cabeza.',
+      'Sin arquear la espalda baja.',
+    ],
+    mistakes: [
+      'Arquear la espalda baja.',
+      'Impulsarte con las piernas.',
+      'Cargar más peso del que controlas.',
+    ],
+    safety: 'Empieza con poco peso y detente si sientes dolor en el hombro.',
+    easier: 'Usa una mochila más ligera o hazlo sentado con la espalda apoyada.',
+    harder: 'Más peso o una pausa de 2 segundos arriba.',
+  ),
+  'Peso muerto rumano con mochila': ExerciseGuide(
+    steps: [
+      'Carga una mochila, ciérrala bien y sujétala por las asas frente a los muslos.',
+      'De pie, con los pies a la anchura de la cadera y las rodillas ligeramente flexionadas.',
+      'Lleva la cadera hacia atrás, como para cerrar una puerta con el glúteo, y deja que la mochila baje pegada a las piernas.',
+      'Mantén la espalda recta y baja hasta sentir un estiramiento fuerte detrás de los muslos.',
+      'Aprieta los glúteos y empuja la cadera hacia adelante para volver a estar de pie.',
+    ],
+    cues: [
+      'Las rodillas casi no cambian de ángulo: el movimiento sale de la cadera.',
+      'La mochila pegada a las piernas.',
+      'Espalda neutra todo el tiempo.',
+    ],
+    mistakes: [
+      'Redondear la espalda.',
+      'Doblar demasiado las rodillas y convertirlo en una sentadilla.',
+      'Dejar que la mochila se aleje de las piernas.',
+    ],
+    safety: 'Si la espalda se redondea, baja menos o usa menos peso.',
+    easier: 'Hazlo sin peso o con una mochila muy ligera.',
+    harder: 'Más peso o hazlo a una pierna.',
+  ),
 };

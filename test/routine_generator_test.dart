@@ -292,12 +292,39 @@ void main() {
       }
     });
 
-    test('sin equipo incluye espalda baja y sugiere una banda elástica', () {
+    test('sin equipo hay tirones con peso corporal y no hace falta sugerir nada',
+        () {
       final routine = generate(
         level: 'beginner',
         goal: 'general_fitness',
         minutes: 45,
         equipment: {},
+      );
+
+      expect(
+        namesOf(routine),
+        contains('Remo invertido con rodillas dobladas'),
+      );
+      expect(routine.equipmentTip, isNull);
+    });
+
+    test('si no hubiera tirones sin equipo, incluye espalda baja y sugiere '
+        'una banda elástica', () {
+      final reducedCatalog = catalog
+          .where(
+            (exercise) => !(exercise.requiredEquipment.isEmpty &&
+                exercise.movementPattern.contains('pull')),
+          )
+          .toList();
+
+      final routine = generator.generate(
+        profile: const GeneratorProfile(
+          level: 'beginner',
+          goal: 'general_fitness',
+          minutes: 45,
+          equipment: <String>{},
+        ),
+        catalog: reducedCatalog,
       );
 
       expect(namesOf(routine), contains('Superman'));
@@ -332,12 +359,16 @@ void main() {
       expect(hasCardio, isTrue);
     });
 
-    test('con mucho tiempo y poco equipo se añade volumen extra', () {
-      final routine = generate(
-        level: 'beginner',
-        goal: 'strength',
-        minutes: 90,
-        equipment: {},
+    test('en un día de pierna con mucho tiempo se añade volumen extra', () {
+      final routine = generator.generate(
+        profile: const GeneratorProfile(
+          level: 'beginner',
+          goal: 'strength',
+          minutes: 90,
+          equipment: <String>{},
+        ),
+        catalog: catalog,
+        focus: RoutineFocus.lower,
       );
 
       final legExercises = routine.exercises.where(
@@ -346,8 +377,54 @@ void main() {
             item.exercise.movementPattern == 'lunge',
       );
 
-      expect(routine.exercises.length, 9);
-      expect(legExercises.length, 2);
+      expect(routine.exercises.length, 7);
+      expect(legExercises.length, 3);
+    });
+
+    test('con poco tiempo se bajan las series a 3 antes de perder ejercicios '
+        'principales', () {
+      final routine = generate(
+        level: 'advanced',
+        goal: 'strength',
+        minutes: 45,
+        equipment: allEquipment,
+      );
+
+      expect(routine.estimatedMinutes, lessThanOrEqualTo(45));
+      expect(routine.exercises.every((item) => item.sets == 3), isTrue);
+    });
+
+    test('con tiempo de sobra los principales conservan las 4 series', () {
+      final routine = generate(
+        level: 'advanced',
+        goal: 'strength',
+        minutes: 75,
+        equipment: allEquipment,
+      );
+
+      expect(routine.exercises.first.sets, 4);
+    });
+
+    test('la bisagra de cadera prefiere isquiotibiales cuando puede', () {
+      final routine = generate(
+        level: 'intermediate',
+        goal: 'hypertrophy',
+        minutes: 60,
+        equipment: {'dumbbells', 'bench'},
+      );
+
+      expect(namesOf(routine), contains('Peso muerto rumano'));
+    });
+
+    test('sin equipo hay peso muerto rumano con mochila para los isquios', () {
+      final routine = generate(
+        level: 'beginner',
+        goal: 'general_fitness',
+        minutes: 45,
+        equipment: {},
+      );
+
+      expect(namesOf(routine), contains('Peso muerto rumano con mochila'));
     });
 
     test('con muy poco tiempo se mantiene un mínimo de 3 ejercicios', () {

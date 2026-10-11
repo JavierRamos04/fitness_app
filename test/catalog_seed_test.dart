@@ -11,12 +11,12 @@ import 'package:fitness_app/core/database/exercise_seed.dart';
 
 void main() {
   group('Catálogo inicial (datos)', () {
-    test('tiene 57 ejercicios con nombres únicos', () {
+    test('tiene 62 ejercicios con nombres únicos', () {
       final names = initialExercises
           .map((exercise) => exercise.name.value.trim().toLowerCase())
           .toList();
 
-      expect(names.length, 57);
+      expect(names.length, 62);
       expect(names.toSet().length, names.length);
     });
 
@@ -148,7 +148,7 @@ void main() {
     test('sin equipo solo devuelve ejercicios que no requieren nada', () async {
       final names = await availableNames({});
 
-      expect(names.length, 25);
+      expect(names.length, 30);
       expect(names, contains('Flexiones'));
       expect(names, contains('Remo invertido bajo mesa'));
       expect(names, isNot(contains('Press de banca')));
