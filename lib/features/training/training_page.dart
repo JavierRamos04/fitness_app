@@ -10,6 +10,7 @@ import '../../core/database/providers/repository_providers.dart';
 import '../../core/database/set_repository.dart';
 import '../../core/router/active_tab_provider.dart';
 import '../../core/services/progression_advisor.dart';
+import '../../core/widgets/exercise_guide_view.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
 
@@ -945,6 +946,17 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                         '${currentExercise.restSeconds}s descanso',
                   ),
                 ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => showExerciseGuideSheet(
+                      context,
+                      name: currentExerciseName,
+                    ),
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Ver técnica'),
+                  ),
+                ),
                 _buildMemoryCard(),
                 if (restRemainingSeconds != null) ...[
                   const SizedBox(height: 20),

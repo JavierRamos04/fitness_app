@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/data/exercise_guides.dart';
 import '../../core/utils/exercise_labels.dart';
+import '../../core/widgets/exercise_guide_view.dart';
 
 class ExercisesPage extends ConsumerStatefulWidget {
   const ExercisesPage({super.key});
@@ -533,18 +535,25 @@ class _ExercisesPageState
                       title: 'Descripción',
                       text: exercise.description,
                     ),
-                    _DetailSection(
-                      title: 'Técnica',
-                      text: exercise.technique,
-                    ),
-                    _DetailSection(
-                      title: 'Instrucciones',
-                      text: exercise.instructions,
-                    ),
-                    _DetailSection(
-                      title: 'Errores frecuentes',
-                      text: exercise.commonMistakes,
-                    ),
+                    if (guideForExercise(exercise.name) != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: ExerciseGuideView(name: exercise.name),
+                      )
+                    else ...[
+                      _DetailSection(
+                        title: 'Técnica',
+                        text: exercise.technique,
+                      ),
+                      _DetailSection(
+                        title: 'Instrucciones',
+                        text: exercise.instructions,
+                      ),
+                      _DetailSection(
+                        title: 'Errores frecuentes',
+                        text: exercise.commonMistakes,
+                      ),
+                    ],
                     _DetailSection(
                       title: 'Consideraciones',
                       text: exercise.considerations,

@@ -7,6 +7,7 @@ import '../../core/database/providers/repository_providers.dart';
 import '../../core/services/routine_generator.dart';
 import '../../core/services/routine_planner.dart';
 import '../../core/utils/exercise_labels.dart';
+import '../../core/widgets/exercise_guide_view.dart';
 
 /// Muestra el plan semanal (una rutina por día de entrenamiento) generado
 /// según el perfil del usuario y le deja usarlo, pedir otro o descartarlo.
@@ -343,6 +344,10 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
                 '${_repsText(routine.exercises[index].minReps, routine.exercises[index].maxReps)} '
                 'repeticiones',
             rest: 'Descanso: ${routine.exercises[index].restSeconds} s',
+            onTechnique: () => showExerciseGuideSheet(
+              context,
+              name: routine.exercises[index].exercise.name,
+            ),
           ),
         const SizedBox(height: 12),
         Text(
@@ -440,6 +445,7 @@ class _ExerciseCard extends StatelessWidget {
     required this.muscle,
     required this.prescription,
     required this.rest,
+    required this.onTechnique,
   });
 
   final int position;
@@ -451,6 +457,9 @@ class _ExerciseCard extends StatelessWidget {
 
   /// Descanso entre series, p. ej. "Descanso: 90 s".
   final String rest;
+
+  /// Abre la guía de técnica del ejercicio.
+  final VoidCallback onTechnique;
 
   @override
   Widget build(BuildContext context) {
@@ -494,6 +503,18 @@ class _ExerciseCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    onPressed: onTechnique,
+                    icon: const Icon(Icons.menu_book_outlined, size: 18),
+                    label: const Text('Ver técnica'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 36),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerLeft,
                     ),
                   ),
                 ],
