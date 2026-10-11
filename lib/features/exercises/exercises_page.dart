@@ -145,6 +145,56 @@ class _ExercisesPageState
         .join(' + ');
   }
 
+  int get _activeFilterCount {
+    var count = 0;
+
+    if (_difficultyFilter != 'all') count++;
+    if (_muscleFilter != 'all') count++;
+    if (_equipmentFilter != 'all') count++;
+
+    return count;
+  }
+
+  /// Resumen de los filtros activos, p. ej. "Principiante · Core · Sin equipo".
+  String get _activeFilterSummary {
+    final parts = <String>[];
+
+    if (_difficultyFilter != 'all') {
+      parts.add(difficultyLabel(_difficultyFilter));
+    }
+
+    if (_muscleFilter != 'all') {
+      parts.add(muscleLabel(_muscleFilter));
+    }
+
+    if (_equipmentFilter == 'none') {
+      parts.add('Sin equipo');
+    } else if (_equipmentFilter != 'all') {
+      final match = _equipment.where((item) => item.code == _equipmentFilter);
+
+      parts.add(match.isEmpty ? _equipmentFilter : match.first.name);
+    }
+
+    return parts.join(' · ');
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _difficultyFilter = 'all';
+      _muscleFilter = 'all';
+      _equipmentFilter = 'all';
+    });
+
+    _applyFilters();
+  }
+
+  /// Chip del tipo de ejercicio; se omite si repite el nombre del músculo
+  /// (p. ej. "Core" y "Core").
+  bool _showTypeChip(Exercise exercise) {
+    return exerciseTypeLabel(exercise.exerciseType) !=
+        muscleLabel(exercise.primaryMuscle);
+  }
+
   List<String> get _availableMuscles {
     final muscles = _allExercises
         .map((exercise) => exercise.primaryMuscle)
@@ -212,8 +262,33 @@ class _ExercisesPageState
               border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 4),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: const PageStorageKey('library-filters'),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 8),
+              leading: const Icon(Icons.tune),
+              title: Text(
+                _activeFilterCount == 0
+                    ? 'Filtros'
+                    : 'Filtros ($_activeFilterCount)',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: _activeFilterCount == 0
+                  ? const Text('Nivel, grupo muscular y equipo')
+                  : Text(_activeFilterSummary),
+              trailing: _activeFilterCount == 0
+                  ? null
+                  : TextButton(
+                      onPressed: _clearFilters,
+                      child: const Text('Limpiar'),
+                    ),
+              children: [
+                const SizedBox(height: 6),
           DropdownButtonFormField<String>(
+            key: ValueKey('difficulty-$_difficultyFilter'),
             initialValue: _difficultyFilter,
             decoration: const InputDecoration(
               labelText: 'Nivel',
@@ -251,6 +326,7 @@ class _ExercisesPageState
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
+            key: ValueKey('muscle-$_muscleFilter'),
             initialValue: _muscleFilter,
             decoration: const InputDecoration(
               labelText: 'Grupo muscular',
@@ -282,6 +358,7 @@ class _ExercisesPageState
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
+            key: ValueKey('equipment-$_equipmentFilter'),
             isExpanded: true,
             initialValue: _equipmentFilter,
             decoration: const InputDecoration(
@@ -316,7 +393,10 @@ class _ExercisesPageState
               _applyFilters();
             },
           ),
-          const SizedBox(height: 22),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               const Expanded(
@@ -363,12 +443,22 @@ class _ExercisesPageState
             crossAxisAlignment:
             CrossAxisAlignment.start,
             children: [
-              Text(
-                exercise.name,
-                style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      exercise.name,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -387,14 +477,18 @@ class _ExercisesPageState
                       exercise.difficulty,
                     ),
                   ),
-                  _InfoChip(
-                    icon: Icons.category_outlined,
-                    label: exerciseTypeLabel(
-                      exercise.exerciseType,
+                  if (_showTypeChip(exercise))
+                    _InfoChip(
+                      icon: Icons.category_outlined,
+                      label: exerciseTypeLabel(
+                        exercise.exerciseType,
+                      ),
                     ),
-                  ),
                   _InfoChip(
-                    icon: Icons.fitness_center,
+                    icon: (_requiredEquipment[exercise.id] ?? const <String>{})
+                            .isEmpty
+                        ? Icons.home_outlined
+                        : Icons.fitness_center,
                     label: _equipmentSummary(exercise),
                   ),
                 ],
@@ -407,25 +501,6 @@ class _ExercisesPageState
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.touch_app_outlined,
-                    size: 17,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Toca para ver detalles',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -518,12 +593,13 @@ class _ExercisesPageState
                             exercise.difficulty,
                           ),
                         ),
-                        _InfoChip(
-                          icon: Icons.category_outlined,
-                          label: exerciseTypeLabel(
-                            exercise.exerciseType,
+                        if (_showTypeChip(exercise))
+                          _InfoChip(
+                            icon: Icons.category_outlined,
+                            label: exerciseTypeLabel(
+                              exercise.exerciseType,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 24),

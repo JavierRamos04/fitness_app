@@ -10,6 +10,7 @@ class TrainingHistoryItem {
     required this.setCount,
     required this.totalRepetitions,
     required this.totalVolumeKg,
+    this.exerciseNames = const [],
   });
 
   final Session session;
@@ -18,6 +19,10 @@ class TrainingHistoryItem {
   final int setCount;
   final int totalRepetitions;
   final double totalVolumeKg;
+
+  /// Nombres de los ejercicios de la sesión, en orden. Sirven de título cuando
+  /// la rutina original ya no existe.
+  final List<String> exerciseNames;
 }
 
 class HistoryRepository {
@@ -69,8 +74,17 @@ class HistoryRepository {
       var setCount = 0;
       var totalRepetitions = 0;
       var totalVolumeKg = 0.0;
+      final exerciseNames = <String>[];
 
       for (final sessionExercise in sessionExercises) {
+        final exercise = await (_database.select(_database.exercises)
+          ..where((table) => table.id.equals(sessionExercise.exerciseId)))
+            .getSingleOrNull();
+
+        if (exercise != null) {
+          exerciseNames.add(exercise.name);
+        }
+
         final sets = await (_database.select(_database.workoutSets)
           ..where(
                 (table) => table.sessionExerciseId.equals(
@@ -100,6 +114,7 @@ class HistoryRepository {
           setCount: setCount,
           totalRepetitions: totalRepetitions,
           totalVolumeKg: totalVolumeKg,
+          exerciseNames: exerciseNames,
         ),
       );
     }

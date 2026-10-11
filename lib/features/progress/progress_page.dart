@@ -6,6 +6,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/router/active_tab_provider.dart';
+import '../../core/utils/number_format.dart';
 
 class ProgressPage extends ConsumerStatefulWidget {
   const ProgressPage({super.key});
@@ -138,10 +139,10 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
     }
 
     if (volumeKg >= 1000) {
-      return '${(volumeKg / 1000).toStringAsFixed(1)} t';
+      return '${formatNumber(volumeKg / 1000)} t';
     }
 
-    return '${volumeKg.toStringAsFixed(1)} kg';
+    return '${formatNumber(volumeKg)} kg';
   }
 
   String _formatDate(DateTime date) {
@@ -235,8 +236,8 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
     final differenceText = !hasChange
         ? 'Primer registro'
         : difference > 0
-        ? '+${difference.toStringAsFixed(1)} kg'
-        : '${difference.toStringAsFixed(1)} kg';
+        ? '+${formatNumber(difference)} kg'
+        : '${formatNumber(difference)} kg';
 
     final chartEntries = _weightHistory.reversed.toList();
 
@@ -282,7 +283,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${latest.weightKg.toStringAsFixed(1)} kg',
+                        '${formatNumber(latest.weightKg)} kg',
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -360,7 +361,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                     children: [
                       Text(
                         'Inicio · '
-                        '${chartEntries.first.weightKg.toStringAsFixed(1)} kg',
+                        '${formatNumber(chartEntries.first.weightKg)} kg',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -368,7 +369,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                       ),
                       Text(
                         'Actual · '
-                        '${chartEntries.last.weightKg.toStringAsFixed(1)} kg',
+                        '${formatNumber(chartEntries.last.weightKg)} kg',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -394,7 +395,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                 child: Icon(Icons.monitor_weight_outlined),
               ),
               title: Text(
-                '${entry.weightKg.toStringAsFixed(1)} kg',
+                '${formatNumber(entry.weightKg)} kg',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
@@ -436,8 +437,23 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
     );
   }
 
+  /// Título de una sesión cuya rutina ya no existe: los primeros ejercicios.
+  String _fallbackTitle(TrainingHistoryItem item) {
+    final names = item.exerciseNames;
+
+    if (names.isEmpty) {
+      return 'Entrenamiento';
+    }
+
+    if (names.length <= 2) {
+      return names.join(' · ');
+    }
+
+    return '${names.take(2).join(' · ')} +${names.length - 2}';
+  }
+
   Widget _buildHistoryCard(TrainingHistoryItem item) {
-    final workoutName = item.workoutName ?? 'Rutina no disponible';
+    final workoutName = item.workoutName ?? _fallbackTitle(item);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -484,15 +500,15 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                 ),
                 _HistoryChip(
                   icon: Icons.fitness_center,
-                  label: '${item.exerciseCount} ejercicios',
+                  label: pluralize(item.exerciseCount, 'ejercicio', 'ejercicios'),
                 ),
                 _HistoryChip(
                   icon: Icons.repeat,
-                  label: '${item.setCount} series',
+                  label: pluralize(item.setCount, 'serie', 'series'),
                 ),
                 _HistoryChip(
                   icon: Icons.replay,
-                  label: '${item.totalRepetitions} reps',
+                  label: pluralize(item.totalRepetitions, 'rep.', 'reps'),
                 ),
                 if (item.totalVolumeKg > 0)
                   _HistoryChip(

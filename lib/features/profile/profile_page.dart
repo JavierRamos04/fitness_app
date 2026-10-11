@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/utils/number_format.dart';
 import '../../core/widgets/equipment_selector.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -111,9 +112,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
       _editingBirthDate = user.birthDate;
 
-      _heightController.text = user.heightCm.toStringAsFixed(1);
+      _heightController.text = formatNumber(user.heightCm);
 
-      _weightController.text = user.currentWeightKg.toStringAsFixed(1);
+      _weightController.text = formatNumber(user.currentWeightKg);
 
       _editingFitnessLevel = user.fitnessLevel;
       _editingTrainingLocation = user.trainingLocation;
@@ -473,13 +474,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 _ProfileInfoRow(
                   icon: Icons.height,
                   label: 'Estatura',
-                  value: '${user.heightCm.toStringAsFixed(1)} cm',
+                  value: '${formatNumber(user.heightCm)} cm',
                 ),
                 const Divider(height: 24),
                 _ProfileInfoRow(
                   icon: Icons.monitor_weight_outlined,
                   label: 'Peso actual',
-                  value: '${user.currentWeightKg.toStringAsFixed(1)} kg',
+                  value: '${formatNumber(user.currentWeightKg)} kg',
                 ),
               ],
             ),
