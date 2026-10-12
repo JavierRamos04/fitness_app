@@ -10,6 +10,7 @@ import '../../core/database/providers/repository_providers.dart';
 import '../../core/database/set_repository.dart';
 import '../../core/router/active_tab_provider.dart';
 import '../../core/services/progression_advisor.dart';
+import '../../core/services/set_input_rules.dart';
 import '../../core/widgets/exercise_guide_view.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +40,9 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   List<WorkoutExercise> _plannedExercises = [];
   final Map<int, String> _exerciseNames = {};
+
+  // Ejercicios que no necesitan equipo (se hacen con el peso corporal).
+  Set<int> _noEquipmentIds = {};
 
   int _currentPlannedIndex = 0;
   int _nextSetIndex = 1;
@@ -274,6 +278,23 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         _exerciseNames[exercise.id] = exercise.name;
       }
 
+      // Si falla, se tratan todos como ejercicios con peso: la pantalla
+      // funciona igual.
+      var noEquipmentIds = <int>{};
+
+      try {
+        final requirements = await ref
+            .read(exerciseRepositoryProvider)
+            .getRequiredEquipmentCodes();
+
+        noEquipmentIds = {
+          for (final exercise in exercises)
+            if (!requirements.containsKey(exercise.id)) exercise.id,
+        };
+      } catch (_) {
+        noEquipmentIds = <int>{};
+      }
+
       if (!mounted) {
         return;
       }
@@ -283,6 +304,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         _workoutId = workout.id;
         _workoutName = workout.name;
         _plannedExercises = plannedExercises;
+        _noEquipmentIds = noEquipmentIds;
         _currentPlannedIndex = 0;
         _isPreparing = false;
         _showNoActiveWorkout = false;
@@ -459,19 +481,39 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         : '${_formatWeight(set.weightKg!)} kg × ${set.repetitions}';
   }
 
+  WorkoutExercise? get _currentPlanned {
+    if (_plannedExercises.isEmpty ||
+        _currentPlannedIndex >= _plannedExercises.length) {
+      return null;
+    }
+
+    return _plannedExercises[_currentPlannedIndex];
+  }
+
+  bool get _currentIsNoEquipment {
+    final planned = _currentPlanned;
+
+    return planned != null && _noEquipmentIds.contains(planned.exerciseId);
+  }
+
   Widget _buildMemoryCard() {
     final last = _lastPerformance;
     final suggestion = _suggestion;
     final scheme = Theme.of(context).colorScheme;
 
     if (last == null) {
+      final planned = _currentPlanned;
+
       return Card(
         margin: const EdgeInsets.only(top: 16),
-        child: const Padding(
-          padding: EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Text(
-            'Primera vez con este ejercicio. Empieza con un peso ligero '
-            'y ajústalo según cómo te sientas.',
+            SetInputRules.firstTimeMessage(
+              noEquipment: _currentIsNoEquipment,
+              minReps: planned?.minReps ?? 8,
+              maxReps: planned?.maxReps ?? 12,
+            ),
           ),
         ),
       );
@@ -515,26 +557,20 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     final weightText = _weightController.text.trim();
     final repetitionsText = _repetitionsController.text.trim();
 
-    if (repetitionsText.isEmpty) {
-      _showMessage('Introduce las repeticiones.');
+    final inputError = SetInputRules.validate(
+      repetitionsText: repetitionsText,
+      weightText: weightText,
+    );
+
+    if (inputError != null) {
+      _showMessage(inputError);
       return;
     }
 
-    final repetitions = int.tryParse(repetitionsText);
-
-    if (repetitions == null || repetitions <= 0) {
-      _showMessage('Las repeticiones deben ser un número válido.');
-      return;
-    }
+    final repetitions = int.parse(repetitionsText);
 
     final weightKg =
     weightText.isEmpty ? null : _parseDecimal(weightText);
-
-    if (weightText.isNotEmpty &&
-        (weightKg == null || weightKg < 0)) {
-      _showMessage('El peso debe ser un número válido.');
-      return;
-    }
 
     final controller = ref.read(
       workoutSessionControllerProvider.notifier,
@@ -966,9 +1002,12 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   ),
                 ],
                 const SizedBox(height: 28),
-                const Text(
-                  'Registrar serie',
-                  style: TextStyle(
+                Text(
+                  SetInputRules.registerTitle(
+                    nextSetIndex: _nextSetIndex,
+                    plannedSets: currentExercise?.sets ?? 0,
+                  ),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -976,8 +1015,12 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                 const SizedBox(height: 12),
                 _QuickAdjustField(
                   controller: _weightController,
-                  labelText: 'Peso (kg)',
-                  hintText: 'Ej. 80',
+                  labelText: SetInputRules.weightLabel(
+                    noEquipment: _currentIsNoEquipment,
+                  ),
+                  hintText: SetInputRules.weightHint(
+                    noEquipment: _currentIsNoEquipment,
+                  ),
                   keyboardType:
                   const TextInputType.numberWithOptions(
                     decimal: true,

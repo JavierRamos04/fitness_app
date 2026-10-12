@@ -6,6 +6,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/router/active_tab_provider.dart';
+import '../../core/utils/workout_labels.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -20,6 +21,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Goal? _activeGoal;
   Workout? _activeWorkout;
+
+  // Ejercicios de la rutina activa y tamaño de su plan (para "Hoy toca").
+  List<_TodayExercise> _todayExercises = [];
+  int? _planSize;
 
   int _sessionCount = 0;
   int _streak = 0;
@@ -82,6 +87,44 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       final activeWorkout = await workoutRepository.getActiveForUser(user.id);
 
+      final todayExercises = <_TodayExercise>[];
+      int? planSize;
+
+      if (activeWorkout != null) {
+        final planned = await ref
+            .read(workoutExerciseRepositoryProvider)
+            .getForWorkout(activeWorkout.id);
+
+        final names = {
+          for (final exercise
+              in await ref.read(exerciseRepositoryProvider).getAll())
+            exercise.id: exercise.name,
+        };
+
+        for (final item in planned) {
+          todayExercises.add(
+            _TodayExercise(
+              name: names[item.exerciseId] ?? 'Ejercicio',
+              detail: formatSetsReps(
+                sets: item.sets,
+                minReps: item.minReps,
+                maxReps: item.maxReps,
+              ),
+            ),
+          );
+        }
+
+        final planKey = activeWorkout.planKey;
+
+        if (planKey != null) {
+          planSize = (await workoutRepository.getPlanWorkouts(
+            userId: user.id,
+            planKey: planKey,
+          ))
+              .length;
+        }
+      }
+
       if (!mounted) {
         return;
       }
@@ -89,6 +132,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       setState(() {
         _activeGoal = userGoals.isEmpty ? null : userGoals.first;
         _activeWorkout = activeWorkout;
+        _todayExercises = todayExercises;
+        _planSize = planSize;
         _sessionCount = history.length;
         _streak = _calculateStreak(history);
         _isLoading = false;
@@ -233,9 +278,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                     const SizedBox(height: 16),
                     if (activeWorkout != null) ...[
                       Text(
-                        activeWorkout.planKey == null
-                            ? 'RUTINA ACTIVA'
-                            : 'HOY TOCA',
+                        todayLabel(
+                          planPosition: activeWorkout.planKey == null
+                              ? null
+                              : activeWorkout.planPosition,
+                          planSize: _planSize,
+                        ),
                         style: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
@@ -259,12 +307,42 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 'Crea una rutina para comenzar a entrenar.'
                           : '${activeWorkout.estimatedDurationMinutes} '
                                 'minutos · ${activeWorkout.daysPerWeek} '
-                                'días por semana.'
-                                '${activeWorkout.planPosition == null ? '' : ' Día ${activeWorkout.planPosition} del plan.'}',
+                                'días por semana',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    if (activeWorkout != null &&
+                        _todayExercises.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 8),
+                      for (final item in _todayExercises)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                item.detail,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
@@ -340,6 +418,15 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
+}
+
+class _TodayExercise {
+  const _TodayExercise({required this.name, required this.detail});
+
+  final String name;
+
+  /// Series y repeticiones, p. ej. "3×8-12".
+  final String detail;
 }
 
 class _StatCard extends StatelessWidget {

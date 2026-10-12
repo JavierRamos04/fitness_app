@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/services/workout_grouping.dart';
+import '../../core/utils/number_format.dart';
 import '../exercises/exercises_page.dart';
 
 class WorkoutsPage extends ConsumerStatefulWidget {
@@ -289,137 +291,207 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
       );
     }
 
+    final groups = groupWorkouts(_workouts);
+    final hasPlans = groups.any((group) => group.isPlan);
+
+    final items = <Widget>[];
+
+    for (final group in groups) {
+      if (group.isPlan || hasPlans) {
+        items.add(_buildGroupHeader(group));
+      }
+
+      for (final workout in group.workouts) {
+        items.add(_buildWorkoutCard(workout, group));
+      }
+    }
+
     return RefreshIndicator(
       onRefresh: _loadWorkouts,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: _workouts.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final workout = _workouts[index];
-          final exerciseCount = _exerciseCounts[workout.id] ?? 0;
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        children: items,
+      ),
+    );
+  }
 
-          return Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _openEditor(workout),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+  Widget _buildGroupHeader(WorkoutGroup group) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+      child: Row(
+        children: [
+          Icon(
+            group.isPlan
+                ? Icons.event_repeat_outlined
+                : Icons.fitness_center_outlined,
+            size: 20,
+            color: scheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              group.title,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkoutCard(Workout workout, WorkoutGroup group) {
+    final scheme = Theme.of(context).colorScheme;
+    final exerciseCount = _exerciseCounts[workout.id] ?? 0;
+    final inPlan = group.isPlan;
+
+    final badge = !workout.isActive
+        ? null
+        : (inPlan ? 'HOY TOCA' : 'ACTIVA');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        shape: workout.isActive
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: scheme.primary, width: 1.5),
+              )
+            : null,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openEditor(workout),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (inPlan && workout.planPosition != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                'DÍA ${workout.planPosition}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  if (workout.isActive) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer,
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'ACTIVA',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimaryContainer,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  Expanded(
-                                    child: Text(
-                                      workout.name,
-                                      style: const TextStyle(
-                                        fontSize: 21,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              if (badge != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: scheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    badge,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: scheme.onPrimaryContainer,
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${_goalLabel(workout.goal)} · '
-                                '${_difficultyLabel(workout.difficulty)}',
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  group.displayName(workout),
+                                  style: const TextStyle(
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        PopupMenuButton<String>(
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'edit':
-                                _openEditor(workout);
-                                break;
-                              case 'active':
-                                _setActive(workout);
-                                break;
-                              case 'delete':
-                                _deleteWorkout(workout);
-                                break;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Editar'),
-                            ),
-                            if (!workout.isActive)
-                              const PopupMenuItem(
-                                value: 'active',
-                                child: Text('Establecer como activa'),
-                              ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Eliminar'),
-                            ),
-                          ],
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            '${_goalLabel(workout.goal)} · '
+                            '${_difficultyLabel(workout.difficulty)}',
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _InfoChip(
-                          icon: Icons.fitness_center,
-                          label: '$exerciseCount ejercicios',
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            _openEditor(workout);
+                            break;
+                          case 'active':
+                            _setActive(workout);
+                            break;
+                          case 'delete':
+                            _deleteWorkout(workout);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Editar'),
                         ),
-                        _InfoChip(
-                          icon: Icons.repeat,
-                          label: '${workout.daysPerWeek} días/semana',
-                        ),
-                        _InfoChip(
-                          icon: Icons.schedule,
-                          label: '${workout.estimatedDurationMinutes} min',
+                        if (!workout.isActive)
+                          PopupMenuItem(
+                            value: 'active',
+                            child: Text(
+                              inPlan
+                                  ? 'Que toque este día'
+                                  : 'Establecer como activa',
+                            ),
+                          ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Eliminar'),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoChip(
+                      icon: Icons.fitness_center,
+                      label: pluralize(exerciseCount, 'ejercicio', 'ejercicios'),
+                    ),
+                    if (!inPlan)
+                      _InfoChip(
+                        icon: Icons.repeat,
+                        label: '${workout.daysPerWeek} días/semana',
+                      ),
+                    _InfoChip(
+                      icon: Icons.schedule,
+                      label: '${workout.estimatedDurationMinutes} min',
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
