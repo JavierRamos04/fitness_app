@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/data/exercise_guides.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
@@ -11,6 +12,7 @@ import '../../core/database/set_repository.dart';
 import '../../core/router/active_tab_provider.dart';
 import '../../core/services/progression_advisor.dart';
 import '../../core/services/set_input_rules.dart';
+import '../../core/services/training_guidance.dart';
 import '../../core/widgets/exercise_guide_view.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +39,12 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   int? _userId;
   int? _workoutId;
   String _workoutName = '';
+  String _workoutGoal = '';
+  String _workoutLevel = '';
+
+  // Series registradas en la sesión actual (solo en memoria): sirven para el
+  // resumen que se muestra al terminar.
+  final List<LoggedSet> _sessionLog = [];
 
   List<WorkoutExercise> _plannedExercises = [];
   final Map<int, String> _exerciseNames = {};
@@ -303,6 +311,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         _userId = user.id;
         _workoutId = workout.id;
         _workoutName = workout.name;
+        _workoutGoal = workout.goal;
+        _workoutLevel = workout.difficulty;
         _plannedExercises = plannedExercises;
         _noEquipmentIds = noEquipmentIds;
         _currentPlannedIndex = 0;
@@ -356,6 +366,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     _startedAt = DateTime.now();
+    _sessionLog.clear();
     _clearRest();
     _currentPlannedIndex = 0;
     _nextSetIndex = 1;
@@ -481,6 +492,73 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         : '${_formatWeight(set.weightKg!)} kg × ${set.repetitions}';
   }
 
+  /// Un punto clave de técnica del ejercicio actual, siempre a la vista.
+  Widget _buildCueLine(String exerciseName) {
+    final cues = guideForExercise(exerciseName)?.cues;
+
+    if (cues == null || cues.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lightbulb_outline, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Clave: ${cues.first}',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Consejos para leer antes de empezar la sesión.
+  Widget _buildPreWorkoutCard() {
+    final tips = TrainingGuidance.preWorkoutTips(
+      goal: _workoutGoal,
+      level: _workoutLevel,
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Antes de empezar',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            for (final tip in tips)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.check_circle_outline, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(tip)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   WorkoutExercise? get _currentPlanned {
     if (_plannedExercises.isEmpty ||
         _currentPlannedIndex >= _plannedExercises.length) {
@@ -594,6 +672,18 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
     _hasRegisteredAnySet = true;
 
+    final plannedNow = _currentPlanned;
+
+    _sessionLog.add(
+      LoggedSet(
+        exerciseName: plannedNow == null
+            ? 'Ejercicio'
+            : (_exerciseNames[plannedNow.exerciseId] ?? 'Ejercicio'),
+        repetitions: repetitions,
+        weightKg: weightKg,
+      ),
+    );
+
     await _loadCurrentSets();
 
     if (!mounted) {
@@ -696,6 +786,14 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
     final finishedWorkoutId = _workoutId;
 
+    final summary = TrainingGuidance.summarize(
+      sets: List<LoggedSet>.of(_sessionLog),
+      duration: Duration(seconds: durationSeconds),
+    );
+    final plannedCount = _plannedExercises.length;
+
+    _sessionLog.clear();
+
     setState(() {
       _clearRest();
       _startedAt = null;
@@ -739,10 +837,64 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       return;
     }
 
-    _showMessage(
-      nextWorkoutName == null
-          ? 'Entrenamiento guardado correctamente.'
-          : 'Entrenamiento guardado. Próxima rutina: $nextWorkoutName.',
+    await _showSummaryDialog(
+      summary: summary,
+      plannedExercises: plannedCount,
+      nextWorkoutName: nextWorkoutName,
+    );
+  }
+
+  Future<void> _showSummaryDialog({
+    required SessionSummary summary,
+    required int plannedExercises,
+    required String? nextWorkoutName,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('¡Entrenamiento guardado!'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final line in TrainingGuidance.summaryLines(summary))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Text(
+                      line,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 14),
+                Text(
+                  TrainingGuidance.closingMessage(
+                    plannedExercises: plannedExercises,
+                    doneExercises: summary.exerciseCount,
+                  ),
+                ),
+                if (nextWorkoutName != null) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Próxima rutina: $nextWorkoutName.',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Listo'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -765,6 +917,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     if (!mounted) {
       return;
     }
+
+    _sessionLog.clear();
 
     setState(() {
       _clearRest();
@@ -943,6 +1097,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                         '${currentExercise.maxReps} repeticiones',
                   ),
                 ],
+                const SizedBox(height: 20),
+                _buildPreWorkoutCard(),
                 const SizedBox(height: 28),
                 FilledButton(
                   onPressed:
@@ -993,6 +1149,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                     label: const Text('Ver técnica'),
                   ),
                 ),
+                _buildCueLine(currentExerciseName),
                 _buildMemoryCard(),
                 if (restRemainingSeconds != null) ...[
                   const SizedBox(height: 20),
