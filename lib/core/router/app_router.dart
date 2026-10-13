@@ -9,6 +9,7 @@ import '../../features/startup/startup_page.dart';
 import '../../features/training/training_page.dart';
 import '../../features/workouts/suggested_routine_page.dart';
 import '../../features/workouts/workouts_page.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'active_tab_reporter.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -39,33 +40,34 @@ final GoRouter appRouter = GoRouter(
             navigationShell: navigationShell,
             child: navigationShell,
           ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: navigationShell.goBranch,
+          bottomNavigationBar: AppBottomNav(
+            currentIndex: navigationShell.currentIndex,
+            onSelected: navigationShell.goBranch,
+            featuredIndex: 2,
             destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
+              AppNavDestination(
+                icon: Icons.home_outlined,
+                selectedIcon: Icons.home_rounded,
                 label: 'Inicio',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.fitness_center_outlined),
-                selectedIcon: Icon(Icons.fitness_center),
+              AppNavDestination(
+                icon: Icons.fitness_center_outlined,
+                selectedIcon: Icons.fitness_center,
                 label: 'Rutinas',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.play_circle_outline),
-                selectedIcon: Icon(Icons.play_circle),
+              AppNavDestination(
+                icon: Icons.play_arrow_rounded,
+                selectedIcon: Icons.play_arrow_rounded,
                 label: 'Entrenar',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.insights_outlined),
-                selectedIcon: Icon(Icons.insights),
+              AppNavDestination(
+                icon: Icons.insights_outlined,
+                selectedIcon: Icons.insights,
                 label: 'Progreso',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
+              AppNavDestination(
+                icon: Icons.person_outline,
+                selectedIcon: Icons.person,
                 label: 'Perfil',
               ),
             ],
