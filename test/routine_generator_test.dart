@@ -84,7 +84,10 @@ void main() {
     const levels = ['beginner', 'intermediate', 'advanced'];
     const goals = ['strength', 'hypertrophy', 'fat_loss', 'general_fitness'];
     const minutesOptions = [15, 20, 30, 45, 60, 75, 90, 120];
-    const timeBased = {'Plancha', 'Plancha lateral', 'Farmer walk'};
+    // Se miden en distancia y carga: no se incluyen en rutinas generadas.
+    const unsupported = {'Farmer walk'};
+    // Isométricos: el rango son segundos.
+    const timed = {'Plancha', 'Plancha lateral'};
 
     test('en todas las combinaciones de perfil, equipo y variante', () {
       for (final equipmentEntry in equipmentSets.entries) {
@@ -144,10 +147,16 @@ void main() {
                   );
 
                   expect(
-                    timeBased.contains(exercise.name),
+                    unsupported.contains(exercise.name),
                     isFalse,
-                    reason: '${exercise.name} se mide en tiempo: $label',
+                    reason: '${exercise.name} no está soportado: $label',
                   );
+
+                  if (timed.contains(exercise.name)) {
+                    expect(item.minReps, 20, reason: label);
+                    expect(item.maxReps, 40, reason: label);
+                    expect(item.restSeconds, 45, reason: label);
+                  }
 
                   expect(item.sets >= 2, isTrue, reason: label);
                   expect(item.minReps <= item.maxReps, isTrue, reason: label);
@@ -158,6 +167,23 @@ void main() {
           }
         }
       }
+    });
+
+    test('las planchas entran en la rutina con un rango en segundos', () {
+      final routine = generate(
+        level: 'beginner',
+        goal: 'general_fitness',
+        minutes: 60,
+        equipment: {},
+      );
+
+      final plank = routine.exercises.firstWhere(
+        (item) => item.exercise.name == 'Plancha',
+      );
+
+      expect(plank.minReps, 20);
+      expect(plank.maxReps, 40);
+      expect(plank.restSeconds, 45);
     });
 
     test('es determinista: mismos datos, misma rutina', () {

@@ -10,10 +10,16 @@ class LoggedSet {
     required this.exerciseName,
     required this.repetitions,
     this.weightKg,
+    this.isTimed = false,
   });
 
   final String exerciseName;
+
+  /// Repeticiones o, si [isTimed], segundos mantenidos.
   final int repetitions;
+
+  /// `true` en ejercicios isométricos (plancha), medidos en segundos.
+  final bool isTimed;
 
   /// `null` si se hizo con el peso corporal.
   final double? weightKg;
@@ -26,12 +32,16 @@ class SessionSummary {
     required this.totalRepetitions,
     required this.volumeKg,
     required this.duration,
+    this.totalSeconds = 0,
   });
 
   /// Ejercicios distintos en los que se registró al menos una serie.
   final int exerciseCount;
   final int setCount;
   final int totalRepetitions;
+
+  /// Segundos en posición de los ejercicios isométricos.
+  final int totalSeconds;
 
   /// Suma de peso × repeticiones de las series con peso.
   final double volumeKg;
@@ -114,9 +124,15 @@ class TrainingGuidance {
     required Duration duration,
   }) {
     var totalReps = 0;
+    var totalSeconds = 0;
     var volume = 0.0;
 
     for (final set in sets) {
+      if (set.isTimed) {
+        totalSeconds += set.repetitions;
+        continue;
+      }
+
       totalReps += set.repetitions;
 
       final weight = set.weightKg;
@@ -130,6 +146,7 @@ class TrainingGuidance {
       exerciseCount: sets.map((set) => set.exerciseName).toSet().length,
       setCount: sets.length,
       totalRepetitions: totalReps,
+      totalSeconds: totalSeconds,
       volumeKg: volume,
       duration: duration,
     );
@@ -141,7 +158,10 @@ class TrainingGuidance {
       'Duración: ${summary.minutes} min',
       'Ejercicios: ${summary.exerciseCount}',
       'Series: ${summary.setCount}',
-      'Repeticiones: ${summary.totalRepetitions}',
+      if (summary.totalRepetitions > 0 || summary.totalSeconds == 0)
+        'Repeticiones: ${summary.totalRepetitions}',
+      if (summary.totalSeconds > 0)
+        'Tiempo en posición: ${summary.totalSeconds} s',
       if (summary.volumeKg > 0)
         'Volumen levantado: ${formatNumber(summary.volumeKg)} kg',
     ];

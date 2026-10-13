@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'timed_exercises.dart';
+
 // Generador de rutinas sugeridas.
 //
 // Lógica pura: no depende de la base de datos ni de Flutter, así que se puede
@@ -186,13 +188,10 @@ const Map<String, int> _equipmentLoad = {
   'bench': 0,
 };
 
-/// Ejercicios que se miden en tiempo o distancia. La app solo registra
-/// repeticiones, así que de momento no se incluyen en las rutinas generadas.
-const Set<String> _timeBasedExercises = {
-  'Plancha',
-  'Plancha lateral',
-  'Farmer walk',
-};
+/// Ejercicios que se miden en distancia y carga. La app no los registra
+/// bien, así que no se incluyen en las rutinas generadas. (Las planchas se
+/// miden en segundos y sí se incluyen: ver `timed_exercises.dart`.)
+const Set<String> _unsupportedExercises = {'Farmer walk'};
 
 /// Equipo que se sugiere para desbloquear ejercicios de tirón, del más
 /// económico al más caro.
@@ -572,6 +571,15 @@ class RoutineGenerator {
       range = const _Range(12, 20, 45);
     }
 
+    // Isométricos: el rango son segundos, no repeticiones.
+    if (isTimedExercise(exercise.name)) {
+      range = const _Range(
+        TimedExercises.minSeconds,
+        TimedExercises.maxSeconds,
+        TimedExercises.restSeconds,
+      );
+    }
+
     return SuggestedExercise(
       exercise: exercise,
       sets: sets,
@@ -610,7 +618,7 @@ class RoutineGenerator {
     GeneratorProfile profile,
     int levelRank,
   ) {
-    if (_timeBasedExercises.contains(exercise.name)) {
+    if (_unsupportedExercises.contains(exercise.name)) {
       return false;
     }
 
@@ -731,7 +739,7 @@ class RoutineGenerator {
 
       final unlocksPull = catalog.any(
         (exercise) =>
-            !_timeBasedExercises.contains(exercise.name) &&
+            !_unsupportedExercises.contains(exercise.name) &&
             _matches(_Slot.pull, exercise) &&
             _difficultyRank(exercise.difficulty) <= levelRank &&
             extended.containsAll(exercise.requiredEquipment),

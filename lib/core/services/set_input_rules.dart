@@ -10,25 +10,44 @@ class SetInputRules {
   /// Máximo de repeticiones aceptado en una serie.
   static const int maxRepetitions = 300;
 
+  /// Máximo de segundos aceptado en una serie de un ejercicio isométrico.
+  static const int maxSeconds = 300;
+
   /// Máximo de peso aceptado en una serie, en kg.
   static const double maxWeightKg = 600;
 
   /// Valida lo escrito por el usuario. Devuelve el mensaje de error, o `null`
   /// si los datos son válidos. El peso es opcional (peso corporal).
+  ///
+  /// Con [timed] el número son segundos (plancha) y no se usa peso.
   static String? validate({
     required String repetitionsText,
     required String weightText,
+    bool timed = false,
   }) {
     final repsText = repetitionsText.trim();
 
     if (repsText.isEmpty) {
-      return 'Introduce las repeticiones.';
+      return timed
+          ? 'Introduce los segundos.'
+          : 'Introduce las repeticiones.';
     }
 
     final repetitions = int.tryParse(repsText);
 
     if (repetitions == null || repetitions <= 0) {
-      return 'Las repeticiones deben ser un número válido.';
+      return timed
+          ? 'Los segundos deben ser un número válido.'
+          : 'Las repeticiones deben ser un número válido.';
+    }
+
+    if (timed) {
+      if (repetitions > maxSeconds) {
+        return 'Los segundos no pueden pasar de $maxSeconds. '
+            'Revisa el número que escribiste.';
+      }
+
+      return null;
     }
 
     if (repetitions > maxRepetitions) {
@@ -74,8 +93,16 @@ class SetInputRules {
     required bool noEquipment,
     required int minReps,
     required int maxReps,
+    bool timed = false,
   }) {
     final range = minReps == maxReps ? '$minReps' : '$minReps-$maxReps';
+
+    if (timed) {
+      return 'Primera vez con este ejercicio. Mantén la posición con buena '
+          'técnica entre $range segundos y anota los segundos que '
+          'aguantaste. Si pierdes la postura, detente: es mejor una serie '
+          'corta bien hecha.';
+    }
 
     if (noEquipment) {
       return 'Primera vez con este ejercicio. Haz $range repeticiones con '
@@ -87,6 +114,31 @@ class SetInputRules {
     return 'Primera vez con este ejercicio. Elige un peso con el que logres '
         '$range repeticiones dejando 1-3 en reserva (que podrías hacer 1-3 '
         'más). Es mejor empezar ligero y subir en la siguiente serie.';
+  }
+
+  /// Etiqueta del campo de repeticiones (o de segundos).
+  static String repetitionsLabel({required bool timed}) {
+    return timed ? 'Segundos' : 'Repeticiones';
+  }
+
+  /// Ayuda del campo de repeticiones (o de segundos).
+  static String repetitionsHint({required bool timed}) {
+    return timed ? 'Ej. 30' : 'Ej. 10';
+  }
+
+  /// Texto de una serie ya registrada.
+  static String setText({
+    required int repetitions,
+    required double? weightKg,
+    required bool timed,
+  }) {
+    if (timed) {
+      return '$repetitions segundos';
+    }
+
+    return weightKg == null
+        ? '$repetitions repeticiones'
+        : '$weightKg kg · $repetitions repeticiones';
   }
 
   /// Etiqueta del campo de peso.

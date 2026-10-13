@@ -12,6 +12,7 @@ import '../../core/database/set_repository.dart';
 import '../../core/router/active_tab_provider.dart';
 import '../../core/services/progression_advisor.dart';
 import '../../core/services/set_input_rules.dart';
+import '../../core/services/timed_exercises.dart';
 import '../../core/services/training_guidance.dart';
 import '../../core/widgets/exercise_guide_view.dart';
 import 'workout_session_controller.dart';
@@ -176,11 +177,16 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     _setFieldText(_weightController, _formatWeight(next));
   }
 
-  /// Suma o resta [delta] repeticiones. Nunca baja de 1.
+  /// Salto de los botones [-] / [+] del campo de repeticiones: 1 repetición o,
+  /// en ejercicios por tiempo, 5 segundos.
+  int get _repetitionsStepNow =>
+      _currentIsTimed ? TimedExercises.stepSeconds : _repetitionsStep;
+
+  /// Suma o resta [delta] pasos de repeticiones. Nunca baja de 1.
   void _adjustRepetitions(int delta) {
     final current =
         int.tryParse(_repetitionsController.text.trim()) ?? 0;
-    final next = current + delta;
+    final next = current + delta * _repetitionsStepNow;
 
     if (next < 1) {
       return;
@@ -433,18 +439,24 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     ProgressionSuggestion? suggestion;
 
     if (last != null) {
-      suggestion = ProgressionAdvisor.suggest(
-        lastSets: last.sets
-            .map(
-              (set) => PerformedSet(
-                weightKg: set.weightKg,
-                repetitions: set.repetitions,
-              ),
+      suggestion = _currentIsTimed
+          ? TimedExercises.suggest(
+              lastSeconds: last.sets.map((set) => set.repetitions).toList(),
+              minSeconds: planned.minReps,
+              maxSeconds: planned.maxReps,
             )
-            .toList(),
-        minReps: planned.minReps,
-        maxReps: planned.maxReps,
-      );
+          : ProgressionAdvisor.suggest(
+              lastSets: last.sets
+                  .map(
+                    (set) => PerformedSet(
+                      weightKg: set.weightKg,
+                      repetitions: set.repetitions,
+                    ),
+                  )
+                  .toList(),
+              minReps: planned.minReps,
+              maxReps: planned.maxReps,
+            );
     }
 
     setState(() {
@@ -487,6 +499,10 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   }
 
   String _formatLastSet(WorkoutSet set) {
+    if (_currentIsTimed) {
+      return '${set.repetitions} s';
+    }
+
     return set.weightKg == null
         ? '${set.repetitions} rep.'
         : '${_formatWeight(set.weightKg!)} kg × ${set.repetitions}';
@@ -568,6 +584,15 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     return _plannedExercises[_currentPlannedIndex];
   }
 
+  bool get _currentIsTimed {
+    final planned = _currentPlanned;
+
+    return planned != null &&
+        isTimedExercise(_exerciseNames[planned.exerciseId] ?? '');
+  }
+
+  String get _repsUnitWord => _currentIsTimed ? 'segundos' : 'repeticiones';
+
   bool get _currentIsNoEquipment {
     final planned = _currentPlanned;
 
@@ -591,6 +616,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
               noEquipment: _currentIsNoEquipment,
               minReps: planned?.minReps ?? 8,
               maxReps: planned?.maxReps ?? 12,
+              timed: _currentIsTimed,
             ),
           ),
         ),
@@ -632,12 +658,16 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   }
 
   Future<void> _registerSet() async {
-    final weightText = _weightController.text.trim();
+    final timed = _currentIsTimed;
+
+    // En ejercicios por tiempo no hay peso: se ignora lo que haya en el campo.
+    final weightText = timed ? '' : _weightController.text.trim();
     final repetitionsText = _repetitionsController.text.trim();
 
     final inputError = SetInputRules.validate(
       repetitionsText: repetitionsText,
       weightText: weightText,
+      timed: timed,
     );
 
     if (inputError != null) {
@@ -681,6 +711,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
             : (_exerciseNames[plannedNow.exerciseId] ?? 'Ejercicio'),
         repetitions: repetitions,
         weightKg: weightKg,
+        isTimed: timed,
       ),
     );
 
@@ -1094,7 +1125,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   Text(
                     '${currentExercise.sets} series · '
                         '${currentExercise.minReps}-'
-                        '${currentExercise.maxReps} repeticiones',
+                        '${currentExercise.maxReps} $_repsUnitWord',
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -1134,7 +1165,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   Text(
                     '${currentExercise.sets} series · '
                         '${currentExercise.minReps}-'
-                        '${currentExercise.maxReps} repeticiones · '
+                        '${currentExercise.maxReps} $_repsUnitWord · '
                         '${currentExercise.restSeconds}s descanso',
                   ),
                 ],
@@ -1170,6 +1201,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (!_currentIsTimed) ...[
                 _QuickAdjustField(
                   controller: _weightController,
                   labelText: SetInputRules.weightLabel(
@@ -1188,17 +1220,24 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   onIncrement: () => _adjustWeight(_weightStepKg),
                 ),
                 const SizedBox(height: 12),
+                ],
                 _QuickAdjustField(
                   controller: _repetitionsController,
-                  labelText: 'Repeticiones',
-                  hintText: 'Ej. 10',
+                  labelText: SetInputRules.repetitionsLabel(
+                    timed: _currentIsTimed,
+                  ),
+                  hintText: SetInputRules.repetitionsHint(
+                    timed: _currentIsTimed,
+                  ),
                   keyboardType: TextInputType.number,
-                  decrementTooltip: 'Restar $_repetitionsStep repetición',
-                  incrementTooltip: 'Sumar $_repetitionsStep repetición',
-                  onDecrement: () =>
-                      _adjustRepetitions(-_repetitionsStep),
-                  onIncrement: () =>
-                      _adjustRepetitions(_repetitionsStep),
+                  decrementTooltip: _currentIsTimed
+                      ? 'Restar ${TimedExercises.stepSeconds} segundos'
+                      : 'Restar $_repetitionsStep repetición',
+                  incrementTooltip: _currentIsTimed
+                      ? 'Sumar ${TimedExercises.stepSeconds} segundos'
+                      : 'Sumar $_repetitionsStep repetición',
+                  onDecrement: () => _adjustRepetitions(-1),
+                  onIncrement: () => _adjustRepetitions(1),
                 ),
                 const SizedBox(height: 12),
                 FilledButton(
@@ -1225,10 +1264,11 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                       child: ListTile(
                         title: Text('Serie ${set.setIndex}'),
                         subtitle: Text(
-                          set.weightKg == null
-                              ? '${set.repetitions} repeticiones'
-                              : '${set.weightKg} kg · '
-                              '${set.repetitions} repeticiones',
+                          SetInputRules.setText(
+                            repetitions: set.repetitions,
+                            weightKg: set.weightKg,
+                            timed: _currentIsTimed,
+                          ),
                         ),
                       ),
                     ),

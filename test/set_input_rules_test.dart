@@ -42,6 +42,60 @@ void main() {
     });
   });
 
+  group('SetInputRules por tiempo', () {
+    String? check(String seconds, [String weight = '']) =>
+        SetInputRules.validate(
+          repetitionsText: seconds,
+          weightText: weight,
+          timed: true,
+        );
+
+    test('acepta segundos normales y ignora el peso', () {
+      expect(check('30'), isNull);
+      expect(check('300'), isNull);
+      expect(check('30', 'abc'), isNull);
+    });
+
+    test('rechaza segundos vacíos, inválidos o exagerados', () {
+      expect(check(''), 'Introduce los segundos.');
+      expect(check('0'), contains('segundos deben ser'));
+      expect(check('abc'), contains('segundos deben ser'));
+      expect(check('301'), contains('300'));
+    });
+
+    test('textos de segundos', () {
+      expect(SetInputRules.repetitionsLabel(timed: true), 'Segundos');
+      expect(SetInputRules.repetitionsLabel(timed: false), 'Repeticiones');
+      expect(SetInputRules.repetitionsHint(timed: true), 'Ej. 30');
+      expect(SetInputRules.repetitionsHint(timed: false), 'Ej. 10');
+
+      final message = SetInputRules.firstTimeMessage(
+        noEquipment: true,
+        minReps: 20,
+        maxReps: 40,
+        timed: true,
+      );
+
+      expect(message, contains('20-40 segundos'));
+      expect(message, isNot(contains('repeticiones')));
+    });
+
+    test('texto de una serie registrada', () {
+      expect(
+        SetInputRules.setText(repetitions: 30, weightKg: null, timed: true),
+        '30 segundos',
+      );
+      expect(
+        SetInputRules.setText(repetitions: 10, weightKg: null, timed: false),
+        '10 repeticiones',
+      );
+      expect(
+        SetInputRules.setText(repetitions: 8, weightKg: 22.5, timed: false),
+        '22.5 kg · 8 repeticiones',
+      );
+    });
+  });
+
   group('SetInputRules textos', () {
     test('título de captura', () {
       expect(
@@ -105,6 +159,10 @@ void main() {
     test('formatSetsReps', () {
       expect(formatSetsReps(sets: 3, minReps: 8, maxReps: 12), '3×8-12');
       expect(formatSetsReps(sets: 4, minReps: 10, maxReps: 10), '4×10');
+      expect(
+        formatSetsReps(sets: 3, minReps: 20, maxReps: 40, timed: true),
+        '3×20-40 s',
+      );
     });
 
     test('todayLabel', () {

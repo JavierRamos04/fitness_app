@@ -85,6 +85,54 @@ void main() {
       expect(summary.minutes, 32);
     });
 
+    test('los segundos de isométricos no se mezclan con repeticiones', () {
+      final summary = TrainingGuidance.summarize(
+        sets: const [
+          LoggedSet(exerciseName: 'Flexiones', repetitions: 12),
+          LoggedSet(
+            exerciseName: 'Plancha',
+            repetitions: 30,
+            isTimed: true,
+          ),
+          LoggedSet(
+            exerciseName: 'Plancha',
+            repetitions: 25,
+            isTimed: true,
+          ),
+        ],
+        duration: const Duration(minutes: 10),
+      );
+
+      expect(summary.setCount, 3);
+      expect(summary.exerciseCount, 2);
+      expect(summary.totalRepetitions, 12);
+      expect(summary.totalSeconds, 55);
+      expect(summary.volumeKg, 0);
+
+      final lines = TrainingGuidance.summaryLines(summary);
+
+      expect(lines, contains('Repeticiones: 12'));
+      expect(lines, contains('Tiempo en posición: 55 s'));
+    });
+
+    test('solo isométricos: no muestra repeticiones en cero', () {
+      final lines = TrainingGuidance.summaryLines(
+        TrainingGuidance.summarize(
+          sets: const [
+            LoggedSet(
+              exerciseName: 'Plancha',
+              repetitions: 30,
+              isTimed: true,
+            ),
+          ],
+          duration: const Duration(minutes: 3),
+        ),
+      );
+
+      expect(lines.any((line) => line.startsWith('Repeticiones')), isFalse);
+      expect(lines, contains('Tiempo en posición: 30 s'));
+    });
+
     test('líneas del resumen', () {
       final withWeight = TrainingGuidance.summaryLines(
         TrainingGuidance.summarize(

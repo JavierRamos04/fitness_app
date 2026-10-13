@@ -6,6 +6,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/router/active_tab_provider.dart';
+import '../../core/services/timed_exercises.dart';
 import '../../core/utils/workout_labels.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -109,6 +110,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 sets: item.sets,
                 minReps: item.minReps,
                 maxReps: item.maxReps,
+                timed: isTimedExercise(names[item.exerciseId] ?? ''),
               ),
             ),
           );
