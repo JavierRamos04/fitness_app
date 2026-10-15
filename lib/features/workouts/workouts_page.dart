@@ -5,8 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/services/timed_exercises.dart';
 import '../../core/services/workout_grouping.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/number_format.dart';
+import '../../core/utils/workout_labels.dart';
+import '../../core/widgets/app_components.dart';
 import '../exercises/exercises_page.dart';
 
 class WorkoutsPage extends ConsumerStatefulWidget {
@@ -211,15 +215,65 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rutinas'),
-        actions: [
-          IconButton(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openEditor(),
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva rutina'),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final scheme = Theme.of(context).colorScheme;
+    final count = _workouts.length;
+
+    final subtitle = _isLoading || _errorMessage != null
+        ? 'Tus planes de entrenamiento'
+        : count == 0
+        ? 'Empieza creando una'
+        : pluralize(count, 'rutina guardada', 'rutinas guardadas');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Rutinas',
+                  style: Theme.of(context).textTheme.headlineLarge,
+                ),
+              ],
+            ),
+          ),
+          IconButton.filledTonal(
             tooltip: 'Rutina sugerida',
             onPressed: _openSuggestedRoutine,
             icon: const Icon(Icons.auto_awesome_outlined),
           ),
-          IconButton(
+          const SizedBox(width: 4),
+          IconButton.filledTonal(
             tooltip: 'Biblioteca de ejercicios',
             onPressed: () {
               Navigator.of(
@@ -230,12 +284,6 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva rutina'),
-      ),
-      body: _buildBody(),
     );
   }
 
@@ -254,40 +302,34 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
     }
 
     if (_workouts.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.fitness_center, size: 64),
-              const SizedBox(height: 20),
-              const Text(
-                'Todavía no tienes rutinas',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: AppEmptyState(
+                icon: Icons.fitness_center,
+                title: 'Todavía no tienes rutinas',
+                message:
+                    'Crea tu primera rutina y configura los ejercicios '
+                    'que quieras realizar.',
+                actions: [
+                  FilledButton.icon(
+                    onPressed: _openSuggestedRoutine,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Crear rutina sugerida'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _openEditor(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Crear rutina manualmente'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Crea tu primera rutina y configura los ejercicios '
-                'que quieras realizar.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _openSuggestedRoutine,
-                icon: const Icon(Icons.auto_awesome_outlined),
-                label: const Text('Crear rutina sugerida'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _openEditor(),
-                icon: const Icon(Icons.add),
-                label: const Text('Crear rutina manualmente'),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       );
     }
 
@@ -309,7 +351,8 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
     return RefreshIndicator(
       onRefresh: _loadWorkouts,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: items,
       ),
     );
@@ -319,7 +362,7 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+      padding: const EdgeInsets.fromLTRB(2, 16, 2, 12),
       child: Row(
         children: [
           Icon(
@@ -333,10 +376,7 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
           Expanded(
             child: Text(
               group.title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
         ],
@@ -348,86 +388,56 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
     final scheme = Theme.of(context).colorScheme;
     final exerciseCount = _exerciseCounts[workout.id] ?? 0;
     final inPlan = group.isPlan;
+    final dayNumber = inPlan ? workout.planPosition : null;
 
-    final badge = !workout.isActive
-        ? null
-        : (inPlan ? 'HOY TOCA' : 'ACTIVA');
+    final badge = !workout.isActive ? null : (inPlan ? 'HOY TOCA' : 'ACTIVA');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
         shape: workout.isActive
             ? RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: scheme.primary, width: 1.5),
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: AppTheme.lime, width: 1.5),
               )
             : null,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           onTap: () => _openEditor(workout),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 4, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (dayNumber != null) ...[
+                      _DayBadge(day: dayNumber, highlighted: workout.isActive),
+                      const SizedBox(width: 14),
+                    ],
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (inPlan && workout.planPosition != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                'DÍA ${workout.planPosition}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1,
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          Row(
-                            children: [
-                              if (badge != null) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: scheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    badge,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: scheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  group.displayName(workout),
-                                  style: const TextStyle(
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          if (badge != null) ...[
+                            AppPill(label: badge),
+                            const SizedBox(height: 8),
+                          ],
+                          Text(
+                            group.displayName(workout),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontSize: 26),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Text(
                             '${_goalLabel(workout.goal)} · '
                             '${_difficultyLabel(workout.difficulty)}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -468,25 +478,32 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _InfoChip(
-                      icon: Icons.fitness_center,
-                      label: pluralize(exerciseCount, 'ejercicio', 'ejercicios'),
-                    ),
-                    if (!inPlan)
-                      _InfoChip(
-                        icon: Icons.repeat,
-                        label: '${workout.daysPerWeek} días/semana',
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      AppMetaChip(
+                        icon: Icons.fitness_center,
+                        label: pluralize(
+                          exerciseCount,
+                          'ejercicio',
+                          'ejercicios',
+                        ),
                       ),
-                    _InfoChip(
-                      icon: Icons.schedule,
-                      label: '${workout.estimatedDurationMinutes} min',
-                    ),
-                  ],
+                      if (!inPlan)
+                        AppMetaChip(
+                          icon: Icons.repeat,
+                          label: '${workout.daysPerWeek} días/semana',
+                        ),
+                      AppMetaChip(
+                        icon: Icons.schedule,
+                        label: '${workout.estimatedDurationMinutes} min',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -497,23 +514,52 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.label});
+/// Número de día de un plan, en un cuadrado redondeado.
+class _DayBadge extends StatelessWidget {
+  const _DayBadge({required this.day, required this.highlighted});
 
-  final IconData icon;
-  final String label;
+  final int day;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 17), const SizedBox(width: 6), Text(label)],
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: 'Día $day',
+      excludeSemantics: true,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: highlighted ? AppTheme.lime : scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'DÍA',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+                height: 1,
+                color: highlighted ? AppTheme.onLime : scheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              '$day',
+              style: TextStyle(
+                fontFamily: AppTheme.displayFont,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+                color: highlighted ? AppTheme.onLime : scheme.onSurface,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1010,6 +1056,8 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
     }
 
     final workout = _currentWorkout;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return PopScope(
       canPop: false,
@@ -1043,96 +1091,63 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
         ),
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   workout == null ? 'Crear rutina' : workout.name,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: textTheme.headlineLarge,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   workout == null
                       ? 'Configura la estructura básica de tu rutina.'
                       : 'Modifica los datos y los ejercicios de la rutina.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 TextField(
                   controller: _nameController,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Nombre de la rutina',
                     hintText: 'Ej. Fuerza tren superior',
-                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: _goal,
-                  decoration: const InputDecoration(
-                    labelText: 'Objetivo',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'strength', child: Text('Fuerza')),
-                    DropdownMenuItem(
-                      value: 'hypertrophy',
-                      child: Text('Hipertrofia'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'fat_loss',
-                      child: Text('Pérdida de grasa'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'general_fitness',
-                      child: Text('Condición física'),
-                    ),
+                const SizedBox(height: 20),
+                _fieldLabel('Objetivo'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in _goalOptions.entries)
+                      ChoiceChip(
+                        label: Text(option.value),
+                        selected: _goal == option.key,
+                        onSelected: (_) => setState(() => _goal = option.key),
+                      ),
                   ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-
-                    setState(() {
-                      _goal = value;
-                    });
-                  },
                 ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: _difficulty,
-                  decoration: const InputDecoration(
-                    labelText: 'Nivel',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'beginner',
-                      child: Text('Principiante'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'intermediate',
-                      child: Text('Intermedio'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'advanced',
-                      child: Text('Avanzado'),
-                    ),
+                const SizedBox(height: 20),
+                _fieldLabel('Nivel'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in _difficultyOptions.entries)
+                      ChoiceChip(
+                        label: Text(option.value),
+                        selected: _difficulty == option.key,
+                        onSelected: (_) =>
+                            setState(() => _difficulty = option.key),
+                      ),
                   ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-
-                    setState(() {
-                      _difficulty = value;
-                    });
-                  },
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -1141,7 +1156,6 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Días por semana',
-                          border: OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -1152,7 +1166,6 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Duración (min)',
-                          border: OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -1163,9 +1176,9 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                   onPressed: _isSaving ? null : _saveWorkout,
                   child: _isSaving
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
                         )
                       : Text(
                           workout == null ? 'Crear rutina' : 'Guardar cambios',
@@ -1174,20 +1187,17 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                 if (workout != null) ...[
                   const SizedBox(height: 32),
                   const Divider(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
-                      const Expanded(
-                        child: Text(
-                          'Ejercicios',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      Expanded(
+                        child: Text('Ejercicios', style: textTheme.titleLarge),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: _addExercise,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                        ),
                         icon: const Icon(Icons.add),
                         label: const Text('Agregar'),
                       ),
@@ -1195,50 +1205,80 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                   ),
                   const SizedBox(height: 14),
                   if (_exercises.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: AppEmptyState(
+                          icon: Icons.fitness_center,
+                          title: 'Sin ejercicios todavía',
+                          message:
+                              'Agrega ejercicios para poder utilizar '
+                              'la rutina durante un entrenamiento.',
+                          actions: [
+                            FilledButton.icon(
+                              onPressed: _addExercise,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Agregar ejercicio'),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Column(
-                        children: [
-                          Icon(Icons.fitness_center, size: 44),
-                          SizedBox(height: 12),
-                          Text(
-                            'Esta rutina todavía no tiene ejercicios.',
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Agrega ejercicios para poder utilizar '
-                            'la rutina durante un entrenamiento.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
                       ),
                     )
                   else
                     ..._exercises.asMap().entries.map((entry) {
                       final index = entry.key;
                       final exercise = entry.value;
+                      final name = _exerciseName(exercise.exerciseId);
+                      final timed = isTimedExercise(name);
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          leading: CircleAvatar(child: Text('${index + 1}')),
-                          title: Text(_exerciseName(exercise.exerciseId)),
-                          subtitle: Text(
-                            '${exercise.sets} series · '
-                            '${exercise.minReps}-'
-                            '${exercise.maxReps} repeticiones · '
-                            '${exercise.restSeconds}s descanso',
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                          child: Row(
                             children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: scheme.primaryContainer,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.displayFont,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${formatSetsReps(sets: exercise.sets, minReps: exercise.minReps, maxReps: exercise.maxReps, timed: timed)}'
+                                      ' · ${exercise.restSeconds} s descanso',
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               IconButton(
                                 tooltip: 'Editar',
                                 onPressed: () => _editExercise(exercise),
@@ -1265,26 +1305,19 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        color: scheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                          ),
+                          Icon(Icons.check_circle, color: scheme.primary),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Esta es la rutina activa.',
                               style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
+                                color: scheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -1298,9 +1331,7 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
                     '${workout.daysPerWeek} días/semana · '
                     '${workout.estimatedDurationMinutes} min',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ],
@@ -1310,6 +1341,34 @@ class _WorkoutEditorPageState extends ConsumerState<WorkoutEditorPage> {
       ),
     );
   }
+
+  Widget _fieldLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  static const Map<String, String> _goalOptions = {
+    'strength': 'Fuerza',
+    'hypertrophy': 'Hipertrofia',
+    'fat_loss': 'Pérdida de grasa',
+    'general_fitness': 'Condición física',
+  };
+
+  static const Map<String, String> _difficultyOptions = {
+    'beginner': 'Principiante',
+    'intermediate': 'Intermedio',
+    'advanced': 'Avanzado',
+  };
 
   String _exerciseName(int exerciseId) {
     return _exerciseNamesCache[exerciseId] ?? 'Ejercicio #$exerciseId';
@@ -1466,8 +1525,7 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
               initialValue: _exerciseId,
               decoration: const InputDecoration(
                 labelText: 'Ejercicio',
-                border: OutlineInputBorder(),
-              ),
+                ),
               items: widget.exercises
                   .map(
                     (exercise) => DropdownMenuItem<int>(
@@ -1505,8 +1563,7 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Series',
-                          border: OutlineInputBorder(),
-                        ),
+                                    ),
                       ),
                     ),
                     SizedBox(
@@ -1516,8 +1573,7 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Reps mín.',
-                          border: OutlineInputBorder(),
-                        ),
+                                    ),
                       ),
                     ),
                     SizedBox(
@@ -1527,8 +1583,7 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Reps máx.',
-                          border: OutlineInputBorder(),
-                        ),
+                                    ),
                       ),
                     ),
                   ],
@@ -1541,16 +1596,14 @@ class _ExerciseConfigDialogState extends State<_ExerciseConfigDialog> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Descanso (segundos)',
-                border: OutlineInputBorder(),
-              ),
+                ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _setType,
               decoration: const InputDecoration(
                 labelText: 'Tipo de serie',
-                border: OutlineInputBorder(),
-              ),
+                ),
               items: const [
                 DropdownMenuItem(value: 'normal', child: Text('Normal')),
                 DropdownMenuItem(value: 'warmup', child: Text('Calentamiento')),
