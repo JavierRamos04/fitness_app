@@ -14,7 +14,12 @@ import '../../core/services/progression_advisor.dart';
 import '../../core/services/set_input_rules.dart';
 import '../../core/services/timed_exercises.dart';
 import '../../core/services/training_guidance.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/number_format.dart';
+import '../../core/utils/workout_labels.dart';
+import '../../core/widgets/app_components.dart';
 import '../../core/widgets/exercise_guide_view.dart';
+import 'widgets/training_widgets.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,6 +47,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   String _workoutName = '';
   String _workoutGoal = '';
   String _workoutLevel = '';
+  int _workoutMinutes = 0;
 
   // Series registradas en la sesión actual (solo en memoria): sirven para el
   // resumen que se muestra al terminar.
@@ -72,6 +78,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   Timer? _restTimer;
   DateTime? _restEndsAt;
   int? _restRemainingSeconds;
+  int _restTotalSeconds = 0;
 
   late final ValueNotifier<int> _activeTab;
 
@@ -117,6 +124,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       _clearRest();
       _restEndsAt = DateTime.now().add(Duration(seconds: seconds));
       _restRemainingSeconds = seconds;
+      _restTotalSeconds = seconds;
     });
 
     _restTimer = Timer.periodic(
@@ -319,6 +327,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         _workoutName = workout.name;
         _workoutGoal = workout.goal;
         _workoutLevel = workout.difficulty;
+        _workoutMinutes = workout.estimatedDurationMinutes;
         _plannedExercises = plannedExercises;
         _noEquipmentIds = noEquipmentIds;
         _currentPlannedIndex = 0;
@@ -538,6 +547,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
   /// Consejos para leer antes de empezar la sesión.
   Widget _buildPreWorkoutCard() {
+    final scheme = Theme.of(context).colorScheme;
+
     final tips = TrainingGuidance.preWorkoutTips(
       goal: _workoutGoal,
       level: _workoutLevel,
@@ -545,27 +556,45 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Antes de empezar',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            Row(
+              children: [
+                const AppIconBadge(
+                  icon: Icons.lightbulb_outline,
+                  size: 38,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Antes de empezar',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             for (final tip in tips)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(Icons.check_circle_outline, size: 18),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.check_circle_outline,
+                        size: 19,
+                        color: scheme.primary,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(tip)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        tip,
+                        style: const TextStyle(fontSize: 15.5, height: 1.3),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -591,8 +620,6 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
         isTimedExercise(_exerciseNames[planned.exerciseId] ?? '');
   }
 
-  String get _repsUnitWord => _currentIsTimed ? 'segundos' : 'repeticiones';
-
   bool get _currentIsNoEquipment {
     final planned = _currentPlanned;
 
@@ -604,55 +631,80 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     final suggestion = _suggestion;
     final scheme = Theme.of(context).colorScheme;
 
+    Widget box(Widget child) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: child,
+      );
+    }
+
     if (last == null) {
       final planned = _currentPlanned;
 
-      return Card(
-        margin: const EdgeInsets.only(top: 16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            SetInputRules.firstTimeMessage(
-              noEquipment: _currentIsNoEquipment,
-              minReps: planned?.minReps ?? 8,
-              maxReps: planned?.maxReps ?? 12,
-              timed: _currentIsTimed,
+      return box(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 20, color: scheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                SetInputRules.firstTimeMessage(
+                  noEquipment: _currentIsNoEquipment,
+                  minReps: planned?.minReps ?? 8,
+                  maxReps: planned?.maxReps ?? 12,
+                  timed: _currentIsTimed,
+                ),
+                style: const TextStyle(fontSize: 15, height: 1.3),
+              ),
             ),
-          ),
+          ],
         ),
       );
     }
 
-    return Card(
-      margin: const EdgeInsets.only(top: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return box(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Última vez · ${_formatLastDate(last.sessionStartedAt)}',
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            last.sets.map(_formatLastSet).join('  ·  '),
+            style: const TextStyle(
+              fontFamily: AppTheme.displayFont,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              height: 1.15,
+            ),
+          ),
+          if (suggestion != null) ...[
+            const SizedBox(height: 10),
             Text(
-              'Última vez · ${_formatLastDate(last.sessionStartedAt)}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+              suggestion.message,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+                color: suggestion.increasesLoad
+                    ? scheme.primary
+                    : scheme.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(last.sets.map(_formatLastSet).join('  ·  ')),
-            if (suggestion != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                suggestion.message,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: suggestion.increasesLoad
-                      ? scheme.primary
-                      : scheme.onSurface,
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1017,41 +1069,19 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
           title: const Text('Entrenar'),
         ),
         body: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.fitness_center_outlined,
-                  size: 72,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Aún no tienes una rutina activa',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Crea una rutina o activa una de tus rutinas '
-                      'para comenzar a entrenar.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 24),
+            child: AppEmptyState(
+              icon: Icons.fitness_center_outlined,
+              title: 'Aún no tienes una rutina activa',
+              message: 'Crea una rutina o activa una de tus rutinas '
+                  'para comenzar a entrenar.',
+              actions: [
                 FilledButton.icon(
                   onPressed: _openSuggestedRoutine,
                   icon: const Icon(Icons.auto_awesome_outlined),
                   label: const Text('Crear rutina sugerida'),
                 ),
-                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () {
                     context.go('/workouts');
@@ -1067,237 +1097,33 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     }
 
     final isTraining = state.isActive;
-    final restRemainingSeconds = _restRemainingSeconds;
-
-    final currentExercise =
-    _plannedExercises.isEmpty
-        ? null
-        : _plannedExercises[_currentPlannedIndex];
-
-    final currentExerciseName = currentExercise == null
-        ? ''
-        : _exerciseNames[currentExercise.exerciseId] ??
-        'Ejercicio';
+    final startedAt = _startedAt;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isTraining ? 'Entrenamiento' : _workoutName,
+          _workoutName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          if (isTraining && startedAt != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(child: SessionClock(startedAt: startedAt)),
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!isTraining) ...[
-                Text(
-                  _workoutName,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${_plannedExercises.length} ejercicios',
-                  style: const TextStyle(fontSize: 17),
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'Primer ejercicio',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  currentExerciseName,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (currentExercise != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '${currentExercise.sets} series · '
-                        '${currentExercise.minReps}-'
-                        '${currentExercise.maxReps} $_repsUnitWord',
-                  ),
-                ],
-                const SizedBox(height: 20),
-                _buildPreWorkoutCard(),
-                const SizedBox(height: 28),
-                FilledButton(
-                  onPressed:
-                  state.isLoading ? null : _startTraining,
-                  child: const Text('Iniciar entrenamiento'),
-                ),
-              ] else ...[
-                LinearProgressIndicator(
-                  value: _plannedExercises.isEmpty
-                      ? 0
-                      : (_currentPlannedIndex + 1) /
-                      _plannedExercises.length,
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Ejercicio ${_currentPlannedIndex + 1} '
-                      'de ${_plannedExercises.length}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  currentExerciseName,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (currentExercise != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '${currentExercise.sets} series · '
-                        '${currentExercise.minReps}-'
-                        '${currentExercise.maxReps} $_repsUnitWord · '
-                        '${currentExercise.restSeconds}s descanso',
-                  ),
-                ],
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => showExerciseGuideSheet(
-                      context,
-                      name: currentExerciseName,
-                    ),
-                    icon: const Icon(Icons.menu_book_outlined),
-                    label: const Text('Ver técnica'),
-                  ),
-                ),
-                _buildCueLine(currentExerciseName),
-                _buildMemoryCard(),
-                if (restRemainingSeconds != null) ...[
-                  const SizedBox(height: 20),
-                  _RestTimerCard(
-                    remainingSeconds: restRemainingSeconds,
-                    onSkip: _skipRest,
-                  ),
-                ],
-                const SizedBox(height: 28),
-                Text(
-                  SetInputRules.registerTitle(
-                    nextSetIndex: _nextSetIndex,
-                    plannedSets: currentExercise?.sets ?? 0,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (!_currentIsTimed) ...[
-                _QuickAdjustField(
-                  controller: _weightController,
-                  labelText: SetInputRules.weightLabel(
-                    noEquipment: _currentIsNoEquipment,
-                  ),
-                  hintText: SetInputRules.weightHint(
-                    noEquipment: _currentIsNoEquipment,
-                  ),
-                  keyboardType:
-                  const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decrementTooltip: 'Restar $_weightStepKg kg',
-                  incrementTooltip: 'Sumar $_weightStepKg kg',
-                  onDecrement: () => _adjustWeight(-_weightStepKg),
-                  onIncrement: () => _adjustWeight(_weightStepKg),
-                ),
-                const SizedBox(height: 12),
-                ],
-                _QuickAdjustField(
-                  controller: _repetitionsController,
-                  labelText: SetInputRules.repetitionsLabel(
-                    timed: _currentIsTimed,
-                  ),
-                  hintText: SetInputRules.repetitionsHint(
-                    timed: _currentIsTimed,
-                  ),
-                  keyboardType: TextInputType.number,
-                  decrementTooltip: _currentIsTimed
-                      ? 'Restar ${TimedExercises.stepSeconds} segundos'
-                      : 'Restar $_repetitionsStep repetición',
-                  incrementTooltip: _currentIsTimed
-                      ? 'Sumar ${TimedExercises.stepSeconds} segundos'
-                      : 'Sumar $_repetitionsStep repetición',
-                  onDecrement: () => _adjustRepetitions(-1),
-                  onIncrement: () => _adjustRepetitions(1),
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed:
-                  state.isLoading ? null : _registerSet,
-                  child: const Text('Registrar serie'),
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'Series registradas',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (_registeredSets.isEmpty)
-                  const Text(
-                    'Todavía no has registrado series.',
-                  )
-                else
-                  ..._registeredSets.map(
-                        (set) => Card(
-                      child: ListTile(
-                        title: Text('Serie ${set.setIndex}'),
-                        subtitle: Text(
-                          SetInputRules.setText(
-                            repetitions: set.repetitions,
-                            weightKg: set.weightKg,
-                            timed: _currentIsTimed,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 20),
-                OutlinedButton(
-                  onPressed: state.isLoading
-                      ? null
-                      : _goToNextExercise,
-                  child: Text(
-                    _currentPlannedIndex ==
-                        _plannedExercises.length - 1
-                        ? 'Último ejercicio'
-                        : 'Siguiente ejercicio',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                FilledButton(
-                  onPressed:
-                  state.isLoading ? null : _finishTraining,
-                  child: const Text('Finalizar entrenamiento'),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed:
-                  state.isLoading ? null : _cancelTraining,
-                  child: const Text('Cancelar entrenamiento'),
-                ),
-              ],
+              if (isTraining)
+                ..._buildSessionChildren(state)
+              else
+                ..._buildPreStartChildren(state),
               if (state.isLoading) ...[
                 const SizedBox(height: 20),
                 const Center(
@@ -1321,129 +1147,310 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       ),
     );
   }
-}
 
-/// Tarjeta que muestra la cuenta atrás del descanso entre series.
-class _RestTimerCard extends StatelessWidget {
-  const _RestTimerCard({
-    required this.remainingSeconds,
-    required this.onSkip,
-  });
-
-  final int remainingSeconds;
-  final VoidCallback onSkip;
-
-  String get _formattedTime {
-    final minutes = remainingSeconds ~/ 60;
-    final seconds = remainingSeconds % 60;
-
-    return '${minutes.toString().padLeft(2, '0')}:'
-        '${seconds.toString().padLeft(2, '0')}';
+  String _plannedDetail(WorkoutExercise planned) {
+    return formatSetsReps(
+      sets: planned.sets,
+      minReps: planned.minReps,
+      maxReps: planned.maxReps,
+      timed: isTimedExercise(_exerciseNames[planned.exerciseId] ?? ''),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+  /// Pantalla antes de empezar: rutina del día, sus ejercicios y consejos.
+  List<Widget> _buildPreStartChildren(WorkoutSessionState state) {
+    final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      color: colors.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.timer_outlined,
-              color: colors.onSecondaryContainer,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Descanso',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colors.onSecondaryContainer,
-                    ),
+    return [
+      AppHeroCard(
+        eyebrow: 'Listo para entrenar',
+        title: _workoutName,
+        chips: [
+          (
+            Icons.fitness_center,
+            pluralize(_plannedExercises.length, 'ejercicio', 'ejercicios'),
+          ),
+          if (_workoutMinutes > 0) (Icons.schedule, '$_workoutMinutes min'),
+        ],
+        actionLabel: 'Iniciar entrenamiento',
+        onAction: state.isLoading ? null : _startTraining,
+      ),
+      const SizedBox(height: 24),
+      const AppSectionHeader(title: 'Ejercicios de hoy'),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Column(
+            children: [
+              for (var index = 0; index < _plannedExercises.length; index++)
+                ...[
+                if (index > 0) const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontFamily: AppTheme.displayFont,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _exerciseNames[_plannedExercises[index]
+                                  .exerciseId] ??
+                              'Ejercicio',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        _plannedDetail(_plannedExercises[index]),
+                        style: TextStyle(
+                          fontFamily: AppTheme.displayFont,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    _formattedTime,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: colors.onSecondaryContainer,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      _buildPreWorkoutCard(),
+    ];
+  }
+
+  /// Pantalla durante el entrenamiento: ejercicio actual, captura de la serie,
+  /// descanso, series hechas y acciones.
+  List<Widget> _buildSessionChildren(WorkoutSessionState state) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final restRemainingSeconds = _restRemainingSeconds;
+    final planned = _currentPlanned;
+
+    final currentExerciseName = planned == null
+        ? ''
+        : _exerciseNames[planned.exerciseId] ?? 'Ejercicio';
+
+    final timed = _currentIsTimed;
+    final isLast = _currentPlannedIndex == _plannedExercises.length - 1;
+
+    final weightField = StepperField(
+      controller: _weightController,
+      label: SetInputRules.weightLabel(noEquipment: _currentIsNoEquipment),
+      hint: SetInputRules.weightHint(noEquipment: _currentIsNoEquipment),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decrementTooltip: 'Restar $_weightStepKg kg',
+      incrementTooltip: 'Sumar $_weightStepKg kg',
+      onDecrement: () => _adjustWeight(-_weightStepKg),
+      onIncrement: () => _adjustWeight(_weightStepKg),
+    );
+
+    final repetitionsField = StepperField(
+      controller: _repetitionsController,
+      label: SetInputRules.repetitionsLabel(timed: timed),
+      hint: SetInputRules.repetitionsHint(timed: timed),
+      keyboardType: TextInputType.number,
+      decrementTooltip: timed
+          ? 'Restar ${TimedExercises.stepSeconds} segundos'
+          : 'Restar $_repetitionsStep repetición',
+      incrementTooltip: timed
+          ? 'Sumar ${TimedExercises.stepSeconds} segundos'
+          : 'Sumar $_repetitionsStep repetición',
+      onDecrement: () => _adjustRepetitions(-1),
+      onIncrement: () => _adjustRepetitions(1),
+    );
+
+    return [
+      ExerciseProgressBar(
+        total: _plannedExercises.length,
+        currentIndex: _currentPlannedIndex,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Ejercicio ${_currentPlannedIndex + 1} '
+        'de ${_plannedExercises.length}',
+        style: TextStyle(
+          fontSize: 14.5,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: 14),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(currentExerciseName, style: textTheme.headlineMedium),
+              if (planned != null) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    AppMetaChip(
+                      icon: Icons.layers_outlined,
+                      label: pluralize(planned.sets, 'serie', 'series'),
+                    ),
+                    AppMetaChip(
+                      icon: timed ? Icons.timer_outlined : Icons.repeat,
+                      label: timed
+                          ? '${planned.minReps}-${planned.maxReps} s'
+                          : '${planned.minReps}-${planned.maxReps} reps',
+                    ),
+                    AppMetaChip(
+                      icon: Icons.hourglass_bottom_rounded,
+                      label: '${planned.restSeconds} s de descanso',
+                    ),
+                  ],
+                ),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 2),
+                  child: TextButton.icon(
+                    onPressed: () => showExerciseGuideSheet(
+                      context,
+                      name: currentExerciseName,
+                    ),
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Ver técnica'),
+                  ),
+                ),
+              ),
+              _buildCueLine(currentExerciseName),
+              const SizedBox(height: 14),
+              _buildMemoryCard(),
+            ],
+          ),
+        ),
+      ),
+      if (restRemainingSeconds != null) ...[
+        const SizedBox(height: 16),
+        RestTimerCard(
+          remainingSeconds: restRemainingSeconds,
+          totalSeconds: _restTotalSeconds,
+          onSkip: _skipRest,
+        ),
+      ],
+      const SizedBox(height: 16),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                SetInputRules.registerTitle(
+                  nextSetIndex: _nextSetIndex,
+                  plannedSets: planned?.sets ?? 0,
+                ),
+                style: textTheme.titleLarge,
+              ),
+              const SizedBox(height: 14),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!timed) ...[
+                      Expanded(child: weightField),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(child: repetitionsField),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: state.isLoading ? null : _registerSet,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                ),
+                icon: const Icon(Icons.check_rounded, size: 26),
+                label: const Text('Registrar serie'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 24),
+      const AppSectionHeader(title: 'Series registradas'),
+      if (_registeredSets.isEmpty)
+        Text(
+          'Todavía no has registrado series.',
+          style: TextStyle(
+            fontSize: 15.5,
+            color: scheme.onSurfaceVariant,
+          ),
+        )
+      else
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
+              children: [
+                for (var index = 0; index < _registeredSets.length; index++)
+                  ...[
+                  if (index > 0) const Divider(height: 1),
+                  SetRow(
+                    index: _registeredSets[index].setIndex,
+                    summary: SetInputRules.summary(
+                      repetitions: _registeredSets[index].repetitions,
+                      weightKg: _registeredSets[index].weightKg,
+                      timed: timed,
                     ),
                   ),
                 ],
-              ),
-            ),
-            TextButton(
-              onPressed: onSkip,
-              child: const Text('Omitir'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-/// Campo numérico con botones [-] y [+] a los lados para ajustar el valor
-/// sin abrir el teclado.
-class _QuickAdjustField extends StatelessWidget {
-  const _QuickAdjustField({
-    required this.controller,
-    required this.labelText,
-    required this.hintText,
-    required this.keyboardType,
-    required this.decrementTooltip,
-    required this.incrementTooltip,
-    required this.onDecrement,
-    required this.onIncrement,
-  });
-
-  final TextEditingController controller;
-  final String labelText;
-  final String hintText;
-  final TextInputType keyboardType;
-  final String decrementTooltip;
-  final String incrementTooltip;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconButton.filledTonal(
-          onPressed: onDecrement,
-          tooltip: decrementTooltip,
-          icon: const Icon(Icons.remove),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              labelText: labelText,
-              hintText: hintText,
-              border: const OutlineInputBorder(),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        IconButton.filledTonal(
-          onPressed: onIncrement,
-          tooltip: incrementTooltip,
-          icon: const Icon(Icons.add),
+      const SizedBox(height: 24),
+      FilledButton.icon(
+        onPressed: state.isLoading ? null : _goToNextExercise,
+        style: FilledButton.styleFrom(
+          backgroundColor: scheme.surfaceContainerHighest,
+          foregroundColor: scheme.onSurface,
         ),
-      ],
-    );
+        icon: Icon(isLast ? Icons.flag_outlined : Icons.arrow_forward_rounded),
+        label: Text(isLast ? 'Último ejercicio' : 'Siguiente ejercicio'),
+      ),
+      const SizedBox(height: 10),
+      OutlinedButton.icon(
+        onPressed: state.isLoading ? null : _finishTraining,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.primary,
+          side: BorderSide(color: scheme.primary.withValues(alpha: 0.6)),
+        ),
+        icon: const Icon(Icons.done_all_rounded),
+        label: const Text('Finalizar entrenamiento'),
+      ),
+      const SizedBox(height: 6),
+      TextButton(
+        onPressed: state.isLoading ? null : _cancelTraining,
+        style: TextButton.styleFrom(foregroundColor: scheme.error),
+        child: const Text('Cancelar entrenamiento'),
+      ),
+    ];
   }
 }

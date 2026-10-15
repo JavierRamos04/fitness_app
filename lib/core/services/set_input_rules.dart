@@ -3,6 +3,7 @@
 // Lógica pura (sin Flutter) para poder probarla fácilmente.
 
 import '../utils/decimal_parser.dart';
+import '../utils/number_format.dart';
 
 class SetInputRules {
   const SetInputRules._();
@@ -139,6 +140,23 @@ class SetInputRules {
     return weightKg == null
         ? '$repetitions repeticiones'
         : '$weightKg kg · $repetitions repeticiones';
+  }
+
+  /// Resumen corto de una serie registrada: "82.5 kg × 8", "12 rep." o "30 s".
+  static String summary({
+    required int repetitions,
+    required double? weightKg,
+    required bool timed,
+  }) {
+    if (timed) {
+      return '$repetitions s';
+    }
+
+    if (weightKg == null || weightKg <= 0) {
+      return '$repetitions rep.';
+    }
+
+    return '${formatNumber(weightKg)} kg × $repetitions';
   }
 
   /// Etiqueta del campo de peso.
