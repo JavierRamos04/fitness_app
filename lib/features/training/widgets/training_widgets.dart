@@ -372,9 +372,19 @@ class RestTimerCard extends StatelessWidget {
 
 /// Fila de una serie ya registrada.
 class SetRow extends StatelessWidget {
-  const SetRow({super.key, required this.index, required this.summary});
+  const SetRow({
+    super.key,
+    required this.index,
+    required this.summary,
+    this.onEdit,
+    this.onDelete,
+  });
 
   final int index;
+
+  /// Si se indican, la fila muestra un menú para corregir o eliminar.
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   /// Texto de la serie, por ejemplo "82.5 kg × 8".
   final String summary;
@@ -417,7 +427,26 @@ class SetRow extends StatelessWidget {
               ),
             ),
           ),
-          Icon(Icons.check_rounded, color: scheme.primary),
+          if (onEdit == null && onDelete == null)
+            Icon(Icons.check_rounded, color: scheme.primary)
+          else
+            PopupMenuButton<String>(
+              tooltip: 'Opciones de la serie $index',
+              icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  onEdit?.call();
+                } else if (value == 'delete') {
+                  onDelete?.call();
+                }
+              },
+              itemBuilder: (context) => [
+                if (onEdit != null)
+                  const PopupMenuItem(value: 'edit', child: Text('Corregir')),
+                if (onDelete != null)
+                  const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+              ],
+            ),
         ],
       ),
     );

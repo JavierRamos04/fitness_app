@@ -98,6 +98,51 @@ class SetRepository {
     await _database.update(_database.workoutSets).replace(workoutSet);
   }
 
+  /// Corrige las repeticiones (o segundos) y el peso de una serie. Un
+  /// [weightKg] `null` deja la serie sin peso (peso corporal).
+  Future<void> updateValues({
+    required int workoutSetId,
+    required int repetitions,
+    required double? weightKg,
+  }) async {
+    await (_database.update(_database.workoutSets)
+          ..where((table) => table.id.equals(workoutSetId)))
+        .write(
+      WorkoutSetsCompanion(
+        repetitions: Value(repetitions),
+        weightKg: Value(weightKg),
+      ),
+    );
+  }
+
+  /// Borra una serie y renumera las restantes del ejercicio para que sigan
+  /// siendo 1, 2, 3… sin huecos (así la siguiente serie nueva no choca).
+  Future<void> deleteAndReindex(int workoutSetId) async {
+    await _database.transaction(() async {
+      final row = await (_database.select(_database.workoutSets)
+            ..where((table) => table.id.equals(workoutSetId)))
+          .getSingleOrNull();
+
+      if (row == null) {
+        return;
+      }
+
+      await delete(workoutSetId);
+
+      final remaining = await getForSessionExercise(row.sessionExerciseId);
+
+      for (var index = 0; index < remaining.length; index++) {
+        final expected = index + 1;
+
+        if (remaining[index].setIndex != expected) {
+          await (_database.update(_database.workoutSets)
+                ..where((table) => table.id.equals(remaining[index].id)))
+              .write(WorkoutSetsCompanion(setIndex: Value(expected)));
+        }
+      }
+    });
+  }
+
   Future<void> delete(int workoutSetId) async {
     await (_database.delete(_database.workoutSets)
       ..where((table) => table.id.equals(workoutSetId)))

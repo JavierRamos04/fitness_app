@@ -19,6 +19,7 @@ import '../../core/utils/number_format.dart';
 import '../../core/utils/workout_labels.dart';
 import '../../core/widgets/app_components.dart';
 import '../../core/widgets/exercise_guide_view.dart';
+import 'widgets/edit_set_dialog.dart';
 import 'widgets/training_widgets.dart';
 import 'workout_session_controller.dart';
 import 'package:go_router/go_router.dart';
@@ -49,9 +50,10 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
   String _workoutLevel = '';
   int _workoutMinutes = 0;
 
-  // Series registradas en la sesión actual (solo en memoria): sirven para el
-  // resumen que se muestra al terminar.
-  final List<LoggedSet> _sessionLog = [];
+  // Series registradas en la sesión actual (solo en memoria), por id de serie:
+  // sirven para el resumen que se muestra al terminar y permiten corregir o
+  // borrar una serie sin perder el orden.
+  final Map<int, LoggedSet> _sessionLog = {};
 
   List<WorkoutExercise> _plannedExercises = [];
   final Map<int, String> _exerciseNames = {};
@@ -755,17 +757,9 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     _hasRegisteredAnySet = true;
 
     final plannedNow = _currentPlanned;
-
-    _sessionLog.add(
-      LoggedSet(
-        exerciseName: plannedNow == null
-            ? 'Ejercicio'
-            : (_exerciseNames[plannedNow.exerciseId] ?? 'Ejercicio'),
-        repetitions: repetitions,
-        weightKg: weightKg,
-        isTimed: timed,
-      ),
-    );
+    final exerciseName = plannedNow == null
+        ? 'Ejercicio'
+        : (_exerciseNames[plannedNow.exerciseId] ?? 'Ejercicio');
 
     await _loadCurrentSets();
 
@@ -773,10 +767,114 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
       return;
     }
 
+    // La serie recién guardada es la última de la lista.
+    final newSetId = _registeredSets.isEmpty
+        ? -1 - _sessionLog.length
+        : _registeredSets.last.id;
+
+    _sessionLog[newSetId] = LoggedSet(
+      exerciseName: exerciseName,
+      repetitions: repetitions,
+      weightKg: weightKg,
+      isTimed: timed,
+    );
+
     _applySuggestionToFields();
 
     if (_plannedExercises.isNotEmpty) {
       _startRest(_plannedExercises[_currentPlannedIndex].restSeconds);
+    }
+  }
+
+  /// Corrige las repeticiones (o segundos) y el peso de una serie registrada.
+  Future<void> _editSet(WorkoutSet workoutSet) async {
+    final edited = await showDialog<EditedSet>(
+      context: context,
+      builder: (_) => EditSetDialog(
+        setNumber: workoutSet.setIndex,
+        initialRepetitions: workoutSet.repetitions,
+        initialWeightKg: workoutSet.weightKg,
+        timed: _currentIsTimed,
+        noEquipment: _currentIsNoEquipment,
+      ),
+    );
+
+    if (edited == null || !mounted) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(setRepositoryProvider)
+          .updateValues(
+            workoutSetId: workoutSet.id,
+            repetitions: edited.repetitions,
+            weightKg: edited.weightKg,
+          );
+
+      final previous = _sessionLog[workoutSet.id];
+      final plannedNow = _currentPlanned;
+
+      _sessionLog[workoutSet.id] = LoggedSet(
+        exerciseName:
+            previous?.exerciseName ??
+            (plannedNow == null
+                ? 'Ejercicio'
+                : (_exerciseNames[plannedNow.exerciseId] ?? 'Ejercicio')),
+        repetitions: edited.repetitions,
+        weightKg: edited.weightKg,
+        isTimed: _currentIsTimed,
+      );
+
+      await _loadCurrentSets();
+
+      _showMessage('Serie ${workoutSet.setIndex} corregida.');
+    } catch (error) {
+      _showMessage('No se pudo corregir la serie: $error');
+    }
+  }
+
+  /// Elimina una serie registrada (con confirmación) y renumera las demás.
+  Future<void> _deleteSet(WorkoutSet workoutSet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Eliminar serie ${workoutSet.setIndex}'),
+          content: const Text(
+            '¿Quieres eliminar esta serie? Las siguientes se renumerarán.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(setRepositoryProvider)
+          .deleteAndReindex(workoutSet.id);
+
+      _sessionLog.remove(workoutSet.id);
+      _hasRegisteredAnySet = _sessionLog.isNotEmpty;
+
+      await _loadCurrentSets();
+
+      _showMessage('Serie eliminada.');
+    } catch (error) {
+      _showMessage('No se pudo eliminar la serie: $error');
     }
   }
 
@@ -870,7 +968,7 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
     final finishedWorkoutId = _workoutId;
 
     final summary = TrainingGuidance.summarize(
-      sets: List<LoggedSet>.of(_sessionLog),
+      sets: List<LoggedSet>.of(_sessionLog.values),
       duration: Duration(seconds: durationSeconds),
     );
     final plannedCount = _plannedExercises.length;
@@ -1413,6 +1511,8 @@ class _TrainingPageState extends ConsumerState<TrainingPage> {
                   ...[
                   if (index > 0) const Divider(height: 1),
                   SetRow(
+                    onEdit: () => _editSet(_registeredSets[index]),
+                    onDelete: () => _deleteSet(_registeredSets[index]),
                     index: _registeredSets[index].setIndex,
                     summary: SetInputRules.summary(
                       repetitions: _registeredSets[index].repetitions,
