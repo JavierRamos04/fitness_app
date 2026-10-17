@@ -6,6 +6,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/services/routine_generator.dart';
 import '../../core/services/routine_planner.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/exercise_labels.dart';
 import '../../core/widgets/exercise_guide_view.dart';
 
@@ -265,9 +266,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
           _plan.length == 1
               ? 'Tu rutina'
               : 'Tu plan de ${_plan.length} días',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context).textTheme.headlineLarge,
         ),
         const SizedBox(height: 6),
         Text(
@@ -323,9 +322,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         const SizedBox(height: 16),
         Text(
           selected.day.name,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 4),
         Text(
@@ -352,9 +349,7 @@ class _SuggestedRoutinePageState extends ConsumerState<SuggestedRoutinePage> {
         const SizedBox(height: 12),
         Text(
           'Antes de empezar',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 10),
         if (_plan.length > 1)
@@ -472,7 +467,24 @@ class _ExerciseCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(radius: 16, child: Text('$position')),
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$position',
+                style: TextStyle(
+                  fontFamily: AppTheme.displayFont,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: colors.onPrimaryContainer,
+                ),
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -480,7 +492,8 @@ class _ExerciseCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: const TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -495,7 +508,12 @@ class _ExerciseCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     prescription,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFont,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: colors.primary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -538,20 +556,16 @@ class _NoteCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Card(
-      color: colors.secondaryContainer,
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: colors.onSecondaryContainer),
+            Icon(icon, color: colors.primary),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                text,
-                style: TextStyle(color: colors.onSecondaryContainer),
-              ),
+              child: Text(text, style: const TextStyle(height: 1.35)),
             ),
           ],
         ),

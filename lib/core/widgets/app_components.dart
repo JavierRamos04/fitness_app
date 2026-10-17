@@ -60,6 +60,113 @@ class AppPill extends StatelessWidget {
   }
 }
 
+/// Opción seleccionable de ancho completo, con icono, descripción opcional y
+/// marca de selección. Sustituye a los chips cuando hay que elegir una sola
+/// opción importante (nivel, lugar de entrenamiento...).
+class AppOptionTile extends StatelessWidget {
+  const AppOptionTile({
+    super.key,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    this.subtitle,
+    this.icon,
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: subtitle == null ? title : '$title. $subtitle',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Material(
+        color: selected
+            ? scheme.primaryContainer
+            : Theme.of(context).cardTheme.color ?? scheme.surfaceContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: selected ? AppTheme.lime : scheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: InkWell(
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppTheme.lime
+                          : scheme.surfaceContainerHigh,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 24,
+                      color: selected ? AppTheme.onLime : scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.3,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Icon(
+                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: selected ? scheme.primary : scheme.outline,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Icono dentro de un círculo suave, para encabezar tarjetas.
 class AppIconBadge extends StatelessWidget {
   const AppIconBadge({super.key, required this.icon, this.size = 44});

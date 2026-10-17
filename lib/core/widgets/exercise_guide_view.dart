@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/exercise_guides.dart';
+import '../theme/app_theme.dart';
 
 /// Abre una hoja con la guía de técnica del ejercicio [name].
 ///
@@ -31,8 +32,7 @@ Future<void> showExerciseGuideSheet(
                 children: [
                   Text(
                     name,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -185,9 +185,23 @@ class _NumberedLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 12,
-            child: Text('$number', style: const TextStyle(fontSize: 12)),
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontFamily: AppTheme.displayFont,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

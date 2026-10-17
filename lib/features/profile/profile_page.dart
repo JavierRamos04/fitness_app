@@ -371,10 +371,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               children: [
                 const Icon(Icons.error_outline, size: 64),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'No pudimos cargar tu perfil',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
                 Text(_errorMessage!, textAlign: TextAlign.center),

@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/decimal_parser.dart';
+import '../../core/widgets/app_components.dart';
 import '../../core/widgets/equipment_selector.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -42,6 +44,55 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     {'type': 'fat_loss', 'name': 'Perder grasa'},
     {'type': 'general_fitness', 'name': 'Mejorar condición física'},
   ];
+
+  static const List<_Choice> _levelOptions = [
+    _Choice(
+      value: 'beginner',
+      icon: Icons.emoji_nature_outlined,
+      title: 'Estoy empezando',
+      subtitle: 'Llevas poco tiempo o nunca has entrenado de forma constante.',
+    ),
+    _Choice(
+      value: 'intermediate',
+      icon: Icons.trending_up,
+      title: 'Tengo algo de experiencia',
+      subtitle: 'Conoces los ejercicios básicos y sigues mejorando.',
+    ),
+    _Choice(
+      value: 'advanced',
+      icon: Icons.local_fire_department_outlined,
+      title: 'Tengo mucha experiencia',
+      subtitle: 'Dominas la técnica y sabes estructurar tus entrenamientos.',
+    ),
+  ];
+
+  static const List<_Choice> _locationOptions = [
+    _Choice(
+      value: 'gym',
+      icon: Icons.fitness_center,
+      title: 'Gimnasio',
+      subtitle: 'Máquinas, barras y mancuernas.',
+    ),
+    _Choice(
+      value: 'home',
+      icon: Icons.home_outlined,
+      title: 'Casa',
+      subtitle: 'Con tu equipo o con tu peso corporal.',
+    ),
+    _Choice(
+      value: 'both',
+      icon: Icons.swap_horiz,
+      title: 'Casa y gimnasio',
+      subtitle: 'Alternas según el día.',
+    ),
+  ];
+
+  static const Map<String, String> _goalDescriptions = {
+    'strength': 'Series pesadas, pocas repeticiones y descansos largos.',
+    'hypertrophy': 'Volumen moderado y 8-12 repeticiones por serie.',
+    'fat_loss': 'Más repeticiones y descansos cortos para mantener el ritmo.',
+    'general_fitness': 'Rutinas equilibradas para todo el cuerpo.',
+  };
 
   @override
   void initState() {
@@ -244,19 +295,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  String _fitnessLevelDescription() {
-    switch (_fitnessLevel) {
-      case 'beginner':
-        return 'Nunca has entrenado de forma constante o llevas poco tiempo aprendiendo.';
-      case 'intermediate':
-        return 'Ya has entrenado durante un tiempo y conoces los ejercicios básicos, aunque todavía estás aprendiendo y mejorando.';
-      case 'advanced':
-        return 'Llevas bastante tiempo entrenando y conoces bien los ejercicios, la técnica y la forma de estructurar tus entrenamientos.';
-      default:
-        return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,7 +304,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-              child: LinearProgressIndicator(value: (_step + 1) / 3),
+              child: _StepBar(current: _step, total: 3),
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -322,20 +360,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Cuéntanos un poco sobre ti',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        const _StepHeader(
+          step: 1,
+          title: 'Cuéntanos un poco sobre ti',
+          subtitle:
+              'Usaremos estos datos para adaptar tu experiencia de '
+              'entrenamiento.',
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Usaremos estos datos para adaptar tu experiencia de entrenamiento.',
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          'Fecha de nacimiento',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
+        const _FieldLabel('Fecha de nacimiento'),
         OutlinedButton.icon(
           onPressed: _selectBirthDate,
           icon: const Icon(Icons.calendar_today_outlined),
@@ -354,7 +386,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           decoration: const InputDecoration(
             labelText: 'Estatura',
             suffixText: 'cm',
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -364,7 +395,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           decoration: const InputDecoration(
             labelText: 'Peso actual',
             suffixText: 'kg',
-            border: OutlineInputBorder(),
           ),
         ),
       ],
@@ -375,84 +405,47 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '¿Cómo es tu experiencia entrenando?',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        const _StepHeader(
+          step: 2,
+          title: '¿Cómo es tu experiencia entrenando?',
+          subtitle:
+              'Cuéntanos un poco sobre tu experiencia para adaptar mejor '
+              'tus rutinas.',
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Cuéntanos un poco sobre tu experiencia para adaptar mejor tus rutinas.',
-        ),
-        const SizedBox(height: 32),
-        DropdownButtonFormField<String>(
-          initialValue: _fitnessLevel,
-          decoration: const InputDecoration(
-            labelText: 'Tu experiencia entrenando',
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'beginner', child: Text('Estoy empezando')),
-            DropdownMenuItem(
-              value: 'intermediate',
-              child: Text('Tengo algo de experiencia'),
+        const _FieldLabel('Tu experiencia entrenando'),
+        for (final option in _levelOptions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppOptionTile(
+              icon: option.icon,
+              title: option.title,
+              subtitle: option.subtitle,
+              selected: _fitnessLevel == option.value,
+              onTap: () => setState(() => _fitnessLevel = option.value),
             ),
-            DropdownMenuItem(
-              value: 'advanced',
-              child: Text('Tengo mucha experiencia'),
+          ),
+        const SizedBox(height: 10),
+        const _FieldLabel('Lugar de entrenamiento'),
+        for (final option in _locationOptions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppOptionTile(
+              icon: option.icon,
+              title: option.title,
+              subtitle: option.subtitle,
+              selected: _trainingLocation == option.value,
+              onTap: () => setState(() => _trainingLocation = option.value),
             ),
-          ],
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-
-            setState(() {
-              _fitnessLevel = value;
-            });
-          },
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _fitnessLevelDescription(),
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-        ),
-        const SizedBox(height: 20),
-        DropdownButtonFormField<String>(
-          initialValue: _trainingLocation,
-          decoration: const InputDecoration(
-            labelText: 'Lugar de entrenamiento',
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'gym', child: Text('Gimnasio')),
-            DropdownMenuItem(value: 'home', child: Text('Casa')),
-            DropdownMenuItem(value: 'both', child: Text('Casa y gimnasio')),
-          ],
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-
-            setState(() {
-              _trainingLocation = value;
-            });
-          },
-        ),
         if (_trainingLocation != 'gym' &&
             _homeEquipmentOptions.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const Text(
-            '¿Qué equipo tienes en casa?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
+          const _FieldLabel('¿Qué equipo tienes en casa?'),
           const SizedBox(height: 4),
           Text(
             'Si no tienes ninguno, déjalo vacío: usaremos ejercicios con tu peso corporal.',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -473,7 +466,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           initialValue: _weeklyFrequency,
           decoration: const InputDecoration(
             labelText: 'Días por semana',
-            border: OutlineInputBorder(),
           ),
           items: List.generate(7, (index) {
             final days = index + 1;
@@ -498,7 +490,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           initialValue: _availableMinutes,
           decoration: const InputDecoration(
             labelText: 'Tiempo disponible por sesión',
-            border: OutlineInputBorder(),
           ),
           items: const [
             DropdownMenuItem(value: 20, child: Text('20 minutos')),
@@ -541,21 +532,40 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '¿Cuál es tu objetivo principal?',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          const _StepHeader(
+            step: 3,
+            title: '¿Cuál es tu objetivo principal?',
+            subtitle: 'Podrás cambiar y ampliar tus objetivos más adelante.',
           ),
-          const SizedBox(height: 8),
-          const Text('Podrás cambiar y ampliar tus objetivos más adelante.'),
-          const SizedBox(height: 32),
           ..._goals.map((goal) {
             final type = goal['type']!;
             final name = goal['name']!;
 
+            final selected = _goalType == type;
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Card(
-                child: RadioListTile<String>(value: type, title: Text(name)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: selected
+                      ? const BorderSide(color: AppTheme.lime, width: 1.5)
+                      : BorderSide.none,
+                ),
+                child: RadioListTile<String>(
+                  value: type,
+                  title: Text(
+                    name,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 24),
+                  ),
+                  subtitle: Text(_goalDescriptions[type] ?? ''),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                ),
               ),
             );
           }),
@@ -563,4 +573,126 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
     );
   }
+}
+
+/// Barra de pasos segmentada: un tramo por paso del asistente.
+class _StepBar extends StatelessWidget {
+  const _StepBar({required this.current, required this.total});
+
+  final int current;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: 'Paso ${current + 1} de $total',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          for (var index = 0; index < total; index++) ...[
+            if (index > 0) const SizedBox(width: 6),
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                height: 6,
+                decoration: BoxDecoration(
+                  color: index <= current
+                      ? scheme.primary
+                      : scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Encabezado de cada paso: "PASO 1 DE 3", título grande y explicación.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final int step;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PASO $step DE 3',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(title, style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.35,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Etiqueta sobre un grupo de opciones.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Opción de una pregunta de elección única.
+class _Choice {
+  const _Choice({
+    required this.value,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String value;
+  final IconData icon;
+  final String title;
+  final String subtitle;
 }

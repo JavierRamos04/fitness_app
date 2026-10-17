@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/database/app_initialization_service.dart';
 import '../../core/database/database_provider.dart';
+import '../../core/theme/app_theme.dart';
 
 class StartupPage extends ConsumerStatefulWidget {
   const StartupPage({super.key});
@@ -57,10 +58,10 @@ class _StartupPageState extends ConsumerState<StartupPage> {
               children: [
                 const Icon(Icons.error_outline, size: 64),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'No se pudo preparar la aplicación',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
                 Text(_errorMessage!, textAlign: TextAlign.center),
@@ -76,19 +77,31 @@ class _StartupPageState extends ConsumerState<StartupPage> {
       );
     }
 
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.fitness_center, size: 72),
-            SizedBox(height: 20),
-            Text(
-              'Fitness App',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: AppTheme.lime,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Transform.rotate(
+                angle: -0.5,
+                child: const Icon(
+                  Icons.fitness_center,
+                  size: 52,
+                  color: AppTheme.onLime,
+                ),
+              ),
             ),
-            SizedBox(height: 24),
-            CircularProgressIndicator(),
+            const SizedBox(height: 22),
+            Text('Fitness App', style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
           ],
         ),
       ),
