@@ -5,6 +5,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/data/exercise_guides.dart';
 import '../../core/utils/exercise_labels.dart';
+import '../../core/widgets/app_components.dart';
 import '../../core/widgets/exercise_guide_view.dart';
 
 class ExercisesPage extends ConsumerStatefulWidget {
@@ -259,7 +260,6 @@ class _ExercisesPageState
                 },
                 icon: const Icon(Icons.clear),
               ),
-              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 4),
@@ -292,7 +292,6 @@ class _ExercisesPageState
             initialValue: _difficultyFilter,
             decoration: const InputDecoration(
               labelText: 'Nivel',
-              border: OutlineInputBorder(),
             ),
             items: const [
               DropdownMenuItem(
@@ -330,7 +329,6 @@ class _ExercisesPageState
             initialValue: _muscleFilter,
             decoration: const InputDecoration(
               labelText: 'Grupo muscular',
-              border: OutlineInputBorder(),
             ),
             items: [
               const DropdownMenuItem(
@@ -363,7 +361,6 @@ class _ExercisesPageState
             initialValue: _equipmentFilter,
             decoration: const InputDecoration(
               labelText: 'Equipo',
-              border: OutlineInputBorder(),
             ),
             items: [
               const DropdownMenuItem(
@@ -397,29 +394,17 @@ class _ExercisesPageState
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Ejercicios',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+          AppSectionHeader(
+            title: 'Ejercicios',
+            trailing: Text(
+              '${_filteredExercises.length}',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              Text(
-                '${_filteredExercises.length}',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
           if (_filteredExercises.isEmpty)
             _buildEmptyState()
           else
@@ -435,7 +420,7 @@ class _ExercisesPageState
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         onTap: () => _showExerciseDetails(exercise),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -445,12 +430,11 @@ class _ExercisesPageState
             children: [
               Text(
                 exercise.name,
-                style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontSize: 25),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -522,37 +506,14 @@ class _ExercisesPageState
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant,
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: AppEmptyState(
+          icon: Icons.search_off,
+          title: 'No encontramos ejercicios',
+          message: 'Prueba con otro término o cambia los filtros.',
         ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Column(
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 48,
-          ),
-          SizedBox(height: 14),
-          Text(
-            'No encontramos ejercicios.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Prueba con otro término o cambia los filtros.',
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -584,10 +545,7 @@ class _ExercisesPageState
                   children: [
                     Text(
                       exercise.name,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 12),
                     Wrap(
@@ -663,39 +621,14 @@ class _ExercisesPageState
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-  });
+  const _InfoChip({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-          ),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
-      ),
-    );
+    return AppMetaChip(icon: icon, label: label);
   }
 }
 
@@ -720,14 +653,8 @@ class _DetailSection extends StatelessWidget {
         crossAxisAlignment:
         CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 7),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 6),
           Text(
             text,
             style: const TextStyle(

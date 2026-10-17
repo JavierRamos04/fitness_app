@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/providers/repository_providers.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/number_format.dart';
+import '../../core/widgets/app_components.dart';
 import '../../core/widgets/equipment_selector.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -414,136 +416,175 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildProfile(User user) {
     final activeGoal = _activeGoal;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-        actions: [
-          IconButton(
-            tooltip: 'Editar perfil',
-            onPressed: _startEditing,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadProfile,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          children: [
-            Center(
-              child: CircleAvatar(
-                radius: 42,
-                child: Icon(
-                  Icons.person_outline,
-                  size: 44,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadProfile,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Información personal',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Perfil',
+                          style: Theme.of(context).textTheme.headlineLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    tooltip: 'Editar perfil',
+                    onPressed: _startEditing,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildProfileHeader(activeGoal),
+              const SizedBox(height: 16),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _MiniStat(
+                        label: 'Edad',
+                        value: '${_calculateAge(user.birthDate)}',
+                        unit: 'años',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniStat(
+                        label: 'Estatura',
+                        value: formatNumber(user.heightCm),
+                        unit: 'cm',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniStat(
+                        label: 'Peso',
+                        value: formatNumber(user.currentWeightKg),
+                        unit: 'kg',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Tu perfil',
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'Información que utilizamos para adaptar '
-                'tu experiencia.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-            const _SectionTitle(title: 'Datos físicos'),
-            const SizedBox(height: 10),
-            _ProfileInfoCard(
-              children: [
-                _ProfileInfoRow(
-                  icon: Icons.cake_outlined,
-                  label: 'Edad',
-                  value: '${_calculateAge(user.birthDate)} años',
-                ),
-                const Divider(height: 24),
-                _ProfileInfoRow(
-                  icon: Icons.height,
-                  label: 'Estatura',
-                  value: '${formatNumber(user.heightCm)} cm',
-                ),
-                const Divider(height: 24),
-                _ProfileInfoRow(
-                  icon: Icons.monitor_weight_outlined,
-                  label: 'Peso actual',
-                  value: '${formatNumber(user.currentWeightKg)} kg',
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const _SectionTitle(title: 'Experiencia y entrenamiento'),
-            const SizedBox(height: 10),
-            _ProfileInfoCard(
-              children: [
-                _ProfileInfoRow(
-                  icon: Icons.trending_up,
-                  label: 'Experiencia',
-                  value: _fitnessLevelLabel(user.fitnessLevel),
-                ),
-                const Divider(height: 24),
-                _ProfileInfoRow(
-                  icon: Icons.location_on_outlined,
-                  label: 'Lugar',
-                  value: _trainingLocationLabel(user.trainingLocation),
-                ),
-                const Divider(height: 24),
-                if (user.trainingLocation != 'gym') ...[
+              const SizedBox(height: 24),
+              const AppSectionHeader(title: 'Experiencia y entrenamiento'),
+              _ProfileInfoCard(
+                children: [
                   _ProfileInfoRow(
-                    icon: Icons.fitness_center,
-                    label: 'Equipo en casa',
-                    value: _homeEquipmentSummary(),
+                    icon: Icons.trending_up,
+                    label: 'Experiencia',
+                    value: _fitnessLevelLabel(user.fitnessLevel),
                   ),
                   const Divider(height: 24),
+                  _ProfileInfoRow(
+                    icon: Icons.location_on_outlined,
+                    label: 'Lugar',
+                    value: _trainingLocationLabel(user.trainingLocation),
+                  ),
+                  const Divider(height: 24),
+                  if (user.trainingLocation != 'gym') ...[
+                    _ProfileInfoRow(
+                      icon: Icons.fitness_center,
+                      label: 'Equipo en casa',
+                      value: _homeEquipmentSummary(),
+                    ),
+                    const Divider(height: 24),
+                  ],
+                  _ProfileInfoRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Frecuencia',
+                    value:
+                        '${user.weeklyFrequency} '
+                        '${user.weeklyFrequency == 1 ? 'día' : 'días'} '
+                        'por semana',
+                  ),
+                  const Divider(height: 24),
+                  _ProfileInfoRow(
+                    icon: Icons.schedule_outlined,
+                    label: 'Tiempo por sesión',
+                    value: '${user.availableMinutes} minutos',
+                  ),
                 ],
-                _ProfileInfoRow(
-                  icon: Icons.calendar_today_outlined,
-                  label: 'Frecuencia',
-                  value:
-                      '${user.weeklyFrequency} '
-                      '${user.weeklyFrequency == 1 ? 'día' : 'días'} '
-                      'por semana',
-                ),
-                const Divider(height: 24),
-                _ProfileInfoRow(
-                  icon: Icons.schedule_outlined,
-                  label: 'Tiempo por sesión',
-                  value: '${user.availableMinutes} minutos',
-                ),
-              ],
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _startEditing,
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Editar perfil'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Tarjeta de cabecera: avatar y objetivo principal.
+  Widget _buildProfileHeader(Goal? activeGoal) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.lime, width: 2),
+              ),
+              child: Icon(Icons.person_outline, size: 36, color: scheme.primary),
             ),
-            const SizedBox(height: 24),
-            const _SectionTitle(title: 'Objetivo principal'),
-            const SizedBox(height: 10),
-            _ProfileInfoCard(
-              children: [
-                _ProfileInfoRow(
-                  icon: Icons.flag_outlined,
-                  label: 'Objetivo',
-                  value: activeGoal == null
-                      ? 'Sin objetivo activo'
-                      : _goalLabel(activeGoal.type),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _startEditing,
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Editar perfil'),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Objetivo principal',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    activeGoal == null
+                        ? 'Sin objetivo activo'
+                        : _goalLabel(activeGoal.type),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 26),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -565,9 +606,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           children: [
-            const Text(
+            Text(
               'Actualiza tu información',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: 8),
             Text(
@@ -611,7 +652,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   decoration: const InputDecoration(
                     labelText: 'Estatura',
                     suffixText: 'cm',
-                    border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -624,7 +664,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   decoration: const InputDecoration(
                     labelText: 'Peso actual',
                     suffixText: 'kg',
-                    border: OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -638,7 +677,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialValue: _editingFitnessLevel,
                   decoration: const InputDecoration(
                     labelText: 'Experiencia entrenando',
-                    border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -671,7 +709,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialValue: _editingTrainingLocation,
                   decoration: const InputDecoration(
                     labelText: 'Lugar de entrenamiento',
-                    border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'gym', child: Text('Gimnasio')),
@@ -720,7 +757,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialValue: _editingWeeklyFrequency,
                   decoration: const InputDecoration(
                     labelText: 'Días por semana',
-                    border: OutlineInputBorder(),
                   ),
                   items: List.generate(7, (index) {
                     final days = index + 1;
@@ -750,7 +786,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialValue: _editingAvailableMinutes,
                   decoration: const InputDecoration(
                     labelText: 'Tiempo disponible por sesión',
-                    border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(value: 15, child: Text('15 minutos')),
@@ -785,7 +820,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   initialValue: _editingGoalType,
                   decoration: const InputDecoration(
                     labelText: 'Objetivo',
-                    border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -859,8 +893,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge
-          ?.copyWith(fontWeight: FontWeight.w800),
+      style: Theme.of(context).textTheme.titleLarge,
     );
   }
 }
@@ -914,11 +947,7 @@ class _ProfileInfoRow extends StatelessWidget {
 
     return Row(
       children: [
-        CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
-          child: Icon(icon),
-        ),
+        AppIconBadge(icon: icon),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -926,8 +955,11 @@ class _ProfileInfoRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -939,6 +971,72 @@ class _ProfileInfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Dato numérico corto (edad, estatura, peso) con su unidad.
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+
+  final String label;
+  final String value;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFont,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w700,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    unit,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

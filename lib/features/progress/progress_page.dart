@@ -6,7 +6,9 @@ import '../../core/database/app_database.dart';
 import '../../core/database/history_repository.dart';
 import '../../core/database/providers/repository_providers.dart';
 import '../../core/router/active_tab_provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/number_format.dart';
+import '../../core/widgets/app_components.dart';
 
 class ProgressPage extends ConsumerStatefulWidget {
   const ProgressPage({super.key});
@@ -152,8 +154,36 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Progreso')),
-      body: _buildBody(),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tu evolución',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Progreso',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
     );
   }
 
@@ -175,43 +205,23 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
       onRefresh: _refresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
+          const AppSectionHeader(title: 'Resumen'),
+          _buildSummaryGrid(),
+          const SizedBox(height: 28),
           _buildWeightSection(),
-          const SizedBox(height: 32),
-
-          const Text(
-            'Resumen',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tu actividad de entrenamiento registrada.',
-            style: TextStyle(
-              fontSize: 15,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          const SizedBox(height: 28),
+          AppSectionHeader(
+            title: 'Historial',
+            trailing: Text(
+              pluralize(_totalWorkouts, 'entrenamiento', 'entrenamientos'),
+              style: TextStyle(
+                fontSize: 15,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-          _buildSummaryGrid(),
-          const SizedBox(height: 32),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Historial',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Text(
-                '$_totalWorkouts entrenamientos',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
           if (_history.isEmpty)
             _buildEmptyState()
           else
@@ -226,6 +236,8 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
+
     final latest = _weightHistory.first;
     final oldest = _weightHistory.last;
 
@@ -236,122 +248,109 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
     final differenceText = !hasChange
         ? 'Primer registro'
         : difference > 0
-        ? '+${formatNumber(difference)} kg'
-        : '${formatNumber(difference)} kg';
+        ? '+${formatNumber(difference)} kg desde el inicio'
+        : '${formatNumber(difference)} kg desde el inicio';
 
     final chartEntries = _weightHistory.reversed.toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Peso',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Evolución de tus registros de peso.',
-          style: TextStyle(
-            fontSize: 15,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 18),
+        const AppSectionHeader(title: 'Peso'),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer,
-                  foregroundColor: Theme.of(context)
-                      .colorScheme
-                      .onPrimaryContainer,
-                  child: const Icon(Icons.monitor_weight_outlined, size: 30),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Peso actual registrado',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${formatNumber(latest.weightKg)} kg',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        differenceText,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'Evolución',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        if (chartEntries.length < 2)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.show_chart,
-                  size: 42,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Row(
+                  children: [
+                    const AppIconBadge(icon: Icons.monitor_weight_outlined),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Peso actual registrado',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                formatNumber(latest.weightKg),
+                                style: const TextStyle(
+                                  fontFamily: AppTheme.displayFont,
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.05,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'kg',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Aún no hay suficiente historial',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
-                  'Registra un cambio de peso para '
-                  'ver aquí tu evolución.',
-                  textAlign: TextAlign.center,
+                  differenceText,
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 15,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
-          )
-        else
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-              child: Column(
-                children: [
+                const SizedBox(height: 16),
+                if (chartEntries.length < 2)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.show_chart,
+                          size: 38,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Aún no hay suficiente historial',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Registra un cambio de peso para '
+                          'ver aquí tu evolución.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  )
+                else ...[
                   SizedBox(
-                    height: 220,
+                    height: 200,
                     width: double.infinity,
                     child: _WeightChart(entries: chartEntries),
                   ),
@@ -363,43 +362,66 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                         'Inicio · '
                         '${formatNumber(chartEntries.first.weightKg)} kg',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
                         'Actual · '
                         '${formatNumber(chartEntries.last.weightKg)} kg',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ],
-              ),
+              ],
             ),
           ),
-        const SizedBox(height: 18),
-        const Text(
+        ),
+        const SizedBox(height: 16),
+        Text(
           'Últimas mediciones',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 10),
         ..._weightHistory.take(5).map((entry) {
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: const CircleAvatar(
-                child: Icon(Icons.monitor_weight_outlined),
-              ),
-              title: Text(
-                '${formatNumber(entry.weightKg)} kg',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                DateFormat('dd/MM/yyyy · HH:mm').format(entry.recordedAt),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  const AppIconBadge(
+                    icon: Icons.monitor_weight_outlined,
+                    size: 40,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      DateFormat('dd/MM/yyyy · HH:mm').format(entry.recordedAt),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${formatNumber(entry.weightKg)} kg',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFont,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -409,29 +431,52 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
   }
 
   Widget _buildSummaryGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.30,
+    return Column(
       children: [
-        _SummaryCard(
-          icon: Icons.fitness_center,
-          label: 'Entrenamientos',
-          value: '$_totalWorkouts',
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: AppStatCard(
+                  icon: Icons.fitness_center,
+                  label: 'Entrenamientos',
+                  value: '$_totalWorkouts',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppStatCard(
+                  icon: Icons.repeat,
+                  label: 'Series',
+                  value: '$_totalSets',
+                ),
+              ),
+            ],
+          ),
         ),
-        _SummaryCard(icon: Icons.repeat, label: 'Series', value: '$_totalSets'),
-        _SummaryCard(
-          icon: Icons.replay,
-          label: 'Repeticiones',
-          value: '$_totalRepetitions',
-        ),
-        _SummaryCard(
-          icon: Icons.monitor_weight_outlined,
-          label: 'Volumen',
-          value: _formatVolume(_totalVolumeKg),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: AppStatCard(
+                  icon: Icons.replay,
+                  label: 'Repeticiones',
+                  value: '$_totalRepetitions',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppStatCard(
+                  icon: Icons.scale_outlined,
+                  label: 'Volumen',
+                  value: _formatVolume(_totalVolumeKg),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -453,6 +498,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
   }
 
   Widget _buildHistoryCard(TrainingHistoryItem item) {
+    final scheme = Theme.of(context).colorScheme;
     final workoutName = item.workoutName ?? _fallbackTitle(item);
 
     return Card(
@@ -471,48 +517,49 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
                     children: [
                       Text(
                         workoutName,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(fontSize: 24),
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 3),
                       Text(
                         _formatDate(item.session.startedAt),
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 14.5,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.check_circle),
+                const SizedBox(width: 8),
+                Icon(Icons.check_circle, color: scheme.primary),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _HistoryChip(
+                AppMetaChip(
                   icon: Icons.timer_outlined,
                   label: _formatDuration(item.session.durationSeconds),
                 ),
-                _HistoryChip(
+                AppMetaChip(
                   icon: Icons.fitness_center,
                   label: pluralize(item.exerciseCount, 'ejercicio', 'ejercicios'),
                 ),
-                _HistoryChip(
+                AppMetaChip(
                   icon: Icons.repeat,
                   label: pluralize(item.setCount, 'serie', 'series'),
                 ),
-                _HistoryChip(
+                AppMetaChip(
                   icon: Icons.replay,
                   label: pluralize(item.totalRepetitions, 'rep.', 'reps'),
                 ),
                 if (item.totalVolumeKg > 0)
-                  _HistoryChip(
-                    icon: Icons.monitor_weight_outlined,
+                  AppMetaChip(
+                    icon: Icons.scale_outlined,
                     label: _formatVolume(item.totalVolumeKg),
                   ),
               ],
@@ -524,96 +571,16 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.insights_outlined, size: 48),
-          SizedBox(height: 14),
-          Text(
-            'Todavía no hay entrenamientos completados.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Cuando completes una sesión aparecerá aquí.',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(icon),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ],
+        padding: EdgeInsets.all(24),
+        child: AppEmptyState(
+          icon: Icons.insights_outlined,
+          title: 'Aún no hay entrenamientos',
+          message:
+              'Cuando completes una sesión aparecerá aquí con su '
+              'duración, series y volumen.',
         ),
-      ),
-    );
-  }
-}
-
-class _HistoryChip extends StatelessWidget {
-  const _HistoryChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 16), const SizedBox(width: 6), Text(label)],
       ),
     );
   }
@@ -731,6 +698,29 @@ class _WeightChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+
+    final lastX = entries.length == 1
+        ? size.width / 2
+        : leftPadding + chartWidth;
+    final firstX = entries.length == 1 ? size.width / 2 : leftPadding;
+
+    final areaPath = Path.from(path)
+      ..lineTo(lastX, size.height - bottomPadding)
+      ..lineTo(firstX, size.height - bottomPadding)
+      ..close();
+
+    canvas.drawPath(
+      areaPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            lineColor.withValues(alpha: 0.28),
+            lineColor.withValues(alpha: 0.0),
+          ],
+        ).createShader(Offset.zero & size),
+    );
 
     canvas.drawPath(path, linePaint);
 
